@@ -1,79 +1,73 @@
-function CategoryPage({ category, onProductClick }) {
-  const products = {
-    'electronics': [
-      { 
-        id: 'PlayStation 5',
-        name: 'PlayStation 5', 
-        price: 3899,
-        image: '/images/product2.jpg',
-        description: 'Next-gen gaming console with stunning graphics and fast loading times.'
-      }
-    ],
-    'sports': [
-      { 
-        id: 'Basketball',
-        name: 'Basketball', 
-        price: 229,
-        image: '/images/product1.jpg',
-        description: 'Professional grade basketball for indoor/outdoor use.'
-      }
-    ],
-    'fashion': [
-      { 
-        id: 'T-Shirt',
-        name: 'T-Shirt', 
-        price: 159,
-        image: '/images/product3.jpg',
-        description: 'Comfortable cotton t-shirt for everyday wear.'
-      }
-    ]
-  };
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
-  const getProducts = () => {
-    if (category === 'all') {
-      return Object.entries(products).reduce((allProducts, [categoryName, categoryProducts]) => {
-        return allProducts.concat(
-          categoryProducts.map(product => ({
-            ...product,
-            category: categoryName 
-          }))
-        );
-      }, []);
-    }
-    return products[category.toLowerCase()] || [];
-  };
+function CategoryPage({ onProductClick, onAddToCart }) {
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { categoryId } = useParams();
 
-  const displayProducts = getProducts();
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                setLoading(true);
+                const url = !categoryId || categoryId === 'all'
+                    ? 'http://localhost:5000/api/products'
+                    : `http://localhost:5000/api/categories/${categoryId}/products`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                setProducts(data);
+            } catch (error) {
+                setError('Error fetching products');
+                console.error('Error:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  return (
-    <section className="category-page">
-      <div className="product-grid">
-        {displayProducts.map(product => (
-          <article key={product.id} className="product-card">
-            <a 
-              href={`/${product.category || category}/${product.id}`}
-              onClick={(e) => {
-                e.preventDefault();
-                onProductClick(product.category || category, product.id);
-              }}
-            >
-              <figure>
-                <img src={product.image} alt={product.name} className="product-thumbnail" />
-                <figcaption>
-                  <h3>{product.name}</h3>
-                  <p className="price">HKD ${product.price.toFixed(2)}</p>
-                  <p className="description">{product.description}</p>
-                </figcaption>
-              </figure>
-            </a>
-            <button className="add-to-cart" type="button" aria-label={`Add ${product.name} to cart`}>
-              Add to Cart
-            </button>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
+        fetchProducts();
+    }, [categoryId]);
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>{error}</div>;
+
+    return (
+        <section className="category-page">
+            <div className="product-grid">
+                {products.map(product => (
+                    <article key={product.pid} className="product-card">
+                        <Link 
+                            to={`/category/${product.catid}/product/${product.pid}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onProductClick(product.catid, product.pid);
+                            }}
+                        >
+                            <img 
+                                src={product.thumbnail 
+                                    ? `http://localhost:5000/images/products/${product.thumbnail}`
+                                    : '/images/placeholder.jpg'
+                                } 
+                                alt={product.name} 
+                                className="product-thumbnail"
+                            />
+                            <h3>{product.name}</h3>
+                            <p className="price">HKD ${product.price}</p>
+                            <p className="description">{product.description}</p>
+                        </Link>
+                        <button 
+                            className="add-to-cart" 
+                            type="button"
+                            onClick={() => onAddToCart(product.pid)}
+                        >
+                            Add to Cart
+                        </button>
+                    </article>
+                ))}
+            </div>
+        </section>
+    );
 }
 
 export default CategoryPage; 
