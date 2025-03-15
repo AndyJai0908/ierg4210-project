@@ -43,6 +43,7 @@
   padding: 0.5rem 0;
   margin: 0;
   font-size: 0.95rem;
+  align-items: center;
 }
 
 .breadcrumb li {
@@ -66,6 +67,11 @@
 
 .breadcrumb li a:hover {
   color: var(--primary-hover);
+}
+
+.breadcrumb li:last-child span {
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .shopping-cart-icon {
@@ -297,7 +303,7 @@
   flex: 1;
 }
 
-.add-to-cart {
+.product-card .add-to-cart {
   width: 100%;
   padding: 1rem;
   background-color: var(--primary-color);
@@ -309,7 +315,7 @@
   margin-top: auto;
 }
 
-.add-to-cart:hover {
+.product-card .add-to-cart:hover {
   background-color: var(--primary-hover);
 }
 

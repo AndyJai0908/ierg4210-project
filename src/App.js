@@ -1,109 +1,146 @@
+// IERG4210 Project 
 // LI WAI Andy SID:1155176724
+
+import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import './App.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CategoryPage from './components/CategoryPage';
 import ProductPage from './components/ProductPage';
+import Admin from './components/Admin';
+import { ShoppingCart } from './utils/ShoppingCart';
 
-function App() {
-  const categories = {
-    'electronics': {
-      name: 'Electronics',
-      products: ['playstation-5']
-    },
-    'sports': {
-      name: 'Sports',
-      products: ['basketball']
-    },
-    'fashion': {
-      name: 'Fashion',
-      products: ['t-shirt']
-    }
+function AppContent() {
+  const [categories, setCategories] = useState({});
+  const [cart] = useState(() => new ShoppingCart());
+  const [cartItems, setCartItems] = useState([]);
+  const navigate = useNavigate();
+  const params = useParams();
+  const [currentProduct, setCurrentProduct] = useState(null);
+  const location = window.location.pathname;
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/categories');
+        const data = await response.json();
+        const categoryObj = data.reduce((acc, cat) => {
+          acc[cat.catid] = {
+            name: cat.name,
+            products: []
+          };
+          return acc;
+        }, {});
+        setCategories(categoryObj);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch product details when needed for breadcrumb
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const pathSegments = location.split('/').filter(Boolean);
+      if (pathSegments[0] === 'category' && pathSegments[2] === 'product' && pathSegments[3]) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/products/${pathSegments[3]}`);
+          const data = await response.json();
+          setCurrentProduct(data);
+        } catch (error) {
+          console.error('Error fetching product:', error);
+        }
+      } else {
+        setCurrentProduct(null);
+      }
+    };
+    fetchProduct();
+  }, [location]);
+
+  // Update cart display whenever it changes
+  useEffect(() => {
+    const updateCartDisplay = async () => {
+      const items = cart.getItems();
+      setCartItems(items);
+    };
+    updateCartDisplay();
+  }, [cart]);
+
+  const handleCategoryClick = (categoryId) => {
+    navigate(`/category/${categoryId}`);
   };
 
-  const [currentPath, setCurrentPath] = useState({
-    category: '',
-    product: '',
-    isProductPage: false
-  });
-
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 'playstation-5',
-      name: 'PlayStation 5',
-      price: 3899,
-      quantity: 1
-    }
-  ]);
-
-  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-
-  const handleCategoryClick = (category) => {
-    setCurrentPath({
-      category: category,
-      product: '',
-      isProductPage: false
-    });
+  const handleProductClick = (categoryId, productId) => {
+    navigate(`/category/${categoryId}/product/${productId}`);
   };
 
-  const handleProductClick = (category, product) => {
-    setCurrentPath({
-      category: category,
-      product: product,
-      isProductPage: true
-    });
+  const handleAddToCart = async (pid) => {
+    await cart.addItem(pid, 1);
+    setCartItems(cart.getItems());
   };
 
-  const handleQuantityChange = (id, newQuantity) => {
+  const handleQuantityChange = async (pid, newQuantity) => {
     if (newQuantity < 0) return;
-    
-    setCartItems(prevItems => 
-      prevItems.map(item => 
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      ).filter(item => item.quantity > 0) 
-    );
+    cart.updateQuantity(pid, newQuantity);
+    setCartItems(cart.getItems());
   };
 
   const renderBreadcrumb = () => {
-    if (currentPath.isProductPage) {
-      return (
-        <ul className="breadcrumb" aria-label="Breadcrumb navigation">
-          <li><a href="/" onClick={(e) => {
-            e.preventDefault();
-            setCurrentPath({ category: '', product: '', isProductPage: false });
-          }}>Home</a></li>
-          <li><a href={`/${currentPath.category}`} onClick={(e) => {
-            e.preventDefault();
-            handleCategoryClick(currentPath.category);
-          }}>{categories[currentPath.category.toLowerCase()].name}</a></li>
-          <li><span>{currentPath.product}</span></li>
-        </ul>
-      );
-    } else if (currentPath.category) {
-      return (
-        <ul className="breadcrumb" aria-label="Breadcrumb navigation">
-          <li><a href="/" onClick={(e) => {
-            e.preventDefault();
-            setCurrentPath({ category: '', product: '', isProductPage: false });
-          }}>Home</a></li>
-          <li><span>{categories[currentPath.category.toLowerCase()].name}</span></li>
-        </ul>
-      );
+    const crumbs = [];
+    
+    crumbs.push(
+      <li key="home">
+        <a href="/" onClick={(e) => {
+          e.preventDefault();
+          navigate('/');
+        }}>Home</a>
+      </li>
+    );
+
+    const pathSegments = location.split('/').filter(Boolean);
+    
+    if (pathSegments.length > 0) {
+      switch(pathSegments[0]) {
+        case 'category':
+          // Add category
+          if (pathSegments[1] && categories[pathSegments[1]]) {
+            crumbs.push(
+              <li key="category">
+                <a href={`/category/${pathSegments[1]}`} onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/category/${pathSegments[1]}`);
+                }}>{categories[pathSegments[1]].name}</a>
+              </li>
+            );
+          }
+          
+          // Add product
+          if (pathSegments[2] === 'product' && currentProduct) {
+            crumbs.push(
+              <li key="product">
+                <span>{currentProduct.name}</span>
+              </li>
+            );
+          }
+          break;
+        case 'admin':
+          crumbs.push(
+            <li key="admin">
+              <span>Admin Panel</span>
+            </li>
+          );
+          break;
+        default:
+          break;
+      }
     }
+
     return (
       <ul className="breadcrumb" aria-label="Breadcrumb navigation">
-        <li><span>Home</span></li>
+        {crumbs}
       </ul>
     );
-  };
-
-  const renderContent = () => {
-    if (currentPath.isProductPage) {
-      return <ProductPage category={currentPath.category.toLowerCase()} productId={currentPath.product} />;
-    } else if (currentPath.category) {
-      return <CategoryPage category={currentPath.category.toLowerCase()} onProductClick={handleProductClick} />;
-    } else {
-      return <CategoryPage category="all" onProductClick={handleProductClick} />;
-    }
   };
 
   return (
@@ -115,30 +152,30 @@ function App() {
           <aside className="shopping-cart-icon" aria-label="Shopping cart">
             🛒
             <div className="shopping-list" role="dialog" aria-label="Shopping cart contents">
-              <h3>Shopping List (Total: HKD ${cartTotal})</h3>
+              <h3>Shopping List (Total: HKD ${cart.getTotal()})</h3>
               {cartItems.length > 0 ? (
                 <>
                   <ul>
                     {cartItems.map(item => (
-                      <li key={item.id}>
+                      <li key={item.pid}>
                         <article className="cart-item">
                           <h4>{item.name}</h4>
                           <div className="quantity-controls">
                             <button 
-                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              onClick={() => handleQuantityChange(item.pid, item.quantity - 1)}
                               aria-label={`Decrease quantity of ${item.name}`}
                             >
                               -
                             </button>
                             <span>{item.quantity}</span>
                             <button 
-                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              onClick={() => handleQuantityChange(item.pid, item.quantity + 1)}
                               aria-label={`Increase quantity of ${item.name}`}
                             >
                               +
                             </button>
                           </div>
-                          <p className="price">HKD ${item.price * item.quantity}</p>
+                          <p className="price">HKD ${item.getTotal()}</p>
                         </article>
                       </li>
                     ))}
@@ -158,17 +195,17 @@ function App() {
           <h2>Categories</h2>
           <nav aria-label="Categories navigation">
             <ul className="categories-list">
-              {Object.entries(categories).map(([key, value]) => (
-                <li key={key}>
+              {Object.entries(categories).map(([catid, category]) => (
+                <li key={catid}>
                   <a 
-                    href={`/${key}`} 
-                    className={`category-link ${currentPath.category.toLowerCase() === key ? 'active' : ''}`}
+                    href={`/category/${catid}`}
+                    className={`category-link ${params.categoryId === catid ? 'active' : ''}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleCategoryClick(value.name);
+                      handleCategoryClick(catid);
                     }}
                   >
-                    {value.name}
+                    {category.name}
                     <span className="arrow">→</span>
                   </a>
                 </li>
@@ -178,7 +215,12 @@ function App() {
         </aside>
 
         <main id="main-content">
-          {renderContent()}
+          <Routes>
+            <Route path="/" element={<CategoryPage category="all" onProductClick={handleProductClick} onAddToCart={handleAddToCart} />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/category/:categoryId" element={<CategoryPage onProductClick={handleProductClick} onAddToCart={handleAddToCart} />} />
+            <Route path="/category/:categoryId/product/:productId" element={<ProductPage onAddToCart={handleAddToCart} />} />
+          </Routes>
         </main>
       </div>
 
@@ -190,6 +232,14 @@ function App() {
         </section>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
