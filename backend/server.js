@@ -11,7 +11,11 @@ app.use('/images', express.static('public/images'));
 
 // Update CORS settings to allow your VM IP
 app.use(cors({
-    origin: ['http://20.205.24.20:3000', 'http://localhost:3000'],
+    origin: [
+        'http://s21.ierg4210.ie.cuhk.edu.hk',
+        'https://s21.ierg4210.ie.cuhk.edu.hk',
+        'http://localhost:3000'
+    ],
     credentials: true
 }));
 
