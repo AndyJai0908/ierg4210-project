@@ -2,19 +2,18 @@ const express = require('express');
 const db = require('./database/db');
 const path = require('path');
 const adminRoutes = require('./routes/admin');
+const cors = require('cors');
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/images', express.static('public/images'));
 
-// Enable CORS for React frontend
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    next();
-});
+// Update CORS settings to allow your VM IP
+app.use(cors({
+    origin: ['http://20.205.24.20:3000', 'http://localhost:3000'],
+    credentials: true
+}));
 
 // Admin routes
 app.use('/api/admin', adminRoutes);
