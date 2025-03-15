@@ -1,0 +1,103 @@
+.admin-panel {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.admin-panel h1 {
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.product-form,
+.category-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.admin-panel button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+}
+
+.admin-panel button:hover {
+    background: var(--primary-hover);
+}
+
+.products-list {
+    margin-top: 2rem;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+.products-list table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.products-list th,
+.products-list td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.products-list th {
+    background-color: var(--background-light);
+    font-weight: 600;
+}
+
+.products-list button {
+    margin: 0 0.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.products-list button:first-child {
+    background-color: #3b82f6;
+}
+
+.products-list button:last-child {
+    background-color: #ef4444;
+}
+
+button[type="button"] {
+    background-color: #6b7280;
+    margin-left: 1rem;
+} 
