@@ -16,6 +16,8 @@ app.use(cors({
         'https://s21.ierg4210.ie.cuhk.edu.hk',
         'http://localhost:3000'
     ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Accept'],
     credentials: true
 }));
 

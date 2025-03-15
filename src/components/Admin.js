@@ -60,12 +60,18 @@ function Admin() {
             
             const response = await fetch(url, {
                 method: method,
-                body: formData
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
             
-            if (!response.ok) throw new Error('Failed to save product');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to save product');
+            }
             
-            await response.json();
+            const data = await response.json();
             alert(editingProduct ? 'Product updated successfully!' : 'Product added successfully!');
             
             setProductForm({
@@ -99,10 +105,16 @@ function Admin() {
 
         try {
             const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products/${pid}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
 
-            if (!response.ok) throw new Error('Failed to delete product');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete product');
+            }
 
             alert('Product deleted successfully!');
             fetchProducts();
@@ -118,21 +130,21 @@ function Admin() {
             const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/categories', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(categoryForm)
             });
             
             if (!response.ok) {
-                throw new Error('Failed to add category');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to add category');
             }
             
             const data = await response.json();
-            if (data.id) {
-                alert('Category added successfully!');
-                setCategoryForm({ name: '' });
-                fetchCategories(); 
-            }
+            alert('Category added successfully!');
+            setCategoryForm({ name: '' });
+            fetchCategories();
         } catch (error) {
             console.error('Error adding category:', error);
             alert('Failed to add category: ' + error.message);
