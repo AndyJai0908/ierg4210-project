@@ -23,7 +23,7 @@ function Admin() {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/categories');
+            const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/categories');
             const data = await response.json();
             setCategories(data);
         } catch (error) {
@@ -33,7 +33,7 @@ function Admin() {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/products');
+            const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/products');
             const data = await response.json();
             setProducts(data);
         } catch (error) {
@@ -53,8 +53,8 @@ function Admin() {
 
         try {
             const url = editingProduct 
-                ? `http://localhost:5000/api/admin/products/${editingProduct.pid}`
-                : 'http://localhost:5000/api/admin/products';
+                ? `http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products/${editingProduct.pid}`
+                : 'http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products';
             
             const method = editingProduct ? 'PUT' : 'POST';
             
@@ -98,7 +98,7 @@ function Admin() {
         if (!window.confirm('Are you sure you want to delete this product?')) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/admin/products/${pid}`, {
+            const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products/${pid}`, {
                 method: 'DELETE'
             });
 
@@ -115,7 +115,7 @@ function Admin() {
     const handleCategorySubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:5000/api/admin/categories', {
+            const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/categories', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

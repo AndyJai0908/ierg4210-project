@@ -50,7 +50,7 @@ export class ShoppingCart {
             item.quantity += quantity;
         } else {
             try {
-                const response = await fetch(`http://localhost:5000/api/products/${pid}`);
+                const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/products/${pid}`);
                 const product = await response.json();
                 this.items.set(pid, new CartItem(
                     pid, 

@@ -11,7 +11,7 @@ function ProductPage({ onAddToCart }) {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/products/${productId}`);
+        const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/products/${productId}`);
         if (!response.ok) {
           throw new Error('Product not found');
         }
@@ -39,7 +39,7 @@ function ProductPage({ onAddToCart }) {
         <div className="product-image">
           <img 
             src={product.image 
-              ? `http://localhost:5000/images/products/${product.image}`
+              ? `http://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.image}`
               : '/images/placeholder.jpg'
             } 
             alt={product.name} 

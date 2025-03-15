@@ -12,8 +12,8 @@ function CategoryPage({ onProductClick, onAddToCart }) {
             try {
                 setLoading(true);
                 const url = !categoryId || categoryId === 'all'
-                    ? 'http://localhost:5000/api/products'
-                    : `http://localhost:5000/api/categories/${categoryId}/products`;
+                    ? 'http://s21.ierg4210.ie.cuhk.edu.hk/api/products'
+                    : `http://s21.ierg4210.ie.cuhk.edu.hk/api/categories/${categoryId}/products`;
                 
                 const response = await fetch(url);
                 const data = await response.json();
@@ -46,7 +46,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                         >
                             <img 
                                 src={product.thumbnail 
-                                    ? `http://localhost:5000/images/products/${product.thumbnail}`
+                                    ? `http://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.thumbnail}`
                                     : '/images/placeholder.jpg'
                                 } 
                                 alt={product.name} 
