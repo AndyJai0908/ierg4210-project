@@ -22,7 +22,7 @@ function AppContent() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/categories');
+        const response = await fetch('http://20.205.24.20:5000/api/categories');
         const data = await response.json();
         const categoryObj = data.reduce((acc, cat) => {
           acc[cat.catid] = {
@@ -45,7 +45,7 @@ function AppContent() {
       const pathSegments = location.split('/').filter(Boolean);
       if (pathSegments[0] === 'category' && pathSegments[2] === 'product' && pathSegments[3]) {
         try {
-          const response = await fetch(`http://localhost:5000/api/products/${pathSegments[3]}`);
+          const response = await fetch(`http://20.205.24.20:5000/api/products/${pathSegments[3]}`);
           const data = await response.json();
           setCurrentProduct(data);
         } catch (error) {
