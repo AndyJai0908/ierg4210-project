@@ -8,6 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/api/images', express.static(path.join(__dirname, 'public/images')));
 
 // Update CORS settings to allow your VM IP
 app.use(cors({

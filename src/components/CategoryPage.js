@@ -17,6 +17,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                 
                 const response = await fetch(url);
                 const data = await response.json();
+                console.log('Product data:', data);
                 setProducts(data);
             } catch (error) {
                 setError('Error fetching products');
@@ -45,13 +46,14 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`http://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.thumbnail}`}
+                                src={`http://s21.ierg4210.ie.cuhk.edu.hk/api/images/products/${product.thumbnail}`}
                                 alt={product.name}
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = '/images/placeholder.jpg';
-                                }}
                                 className="product-thumbnail"
+                                onError={(e) => {
+                                    console.log('Image load error:', e);
+                                    e.target.onerror = null;
+                                    e.target.src = '/placeholder.jpg';
+                                }}
                             />
                             <h3>{product.name}</h3>
                             <p className="price">HKD ${product.price}</p>
