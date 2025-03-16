@@ -45,11 +45,12 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={product.thumbnail 
-                                    ? `http://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.thumbnail}`
-                                    : '/images/placeholder.jpg'
-                                } 
-                                alt={product.name} 
+                                src={`http://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.thumbnail}`}
+                                alt={product.name}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = '/images/placeholder.jpg';
+                                }}
                                 className="product-thumbnail"
                             />
                             <h3>{product.name}</h3>

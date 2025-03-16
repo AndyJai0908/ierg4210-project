@@ -137,8 +137,7 @@ function Admin() {
             });
             
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to add category');
+                throw new Error(`Failed to add category: ${response.statusText}`);
             }
             
             const data = await response.json();

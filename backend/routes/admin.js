@@ -281,4 +281,21 @@ router.delete('/products/:pid', async (req, res) => {
     }
 });
 
+router.post('/categories', async (req, res) => {
+    try {
+        const { name } = req.body;
+        const sql = 'INSERT INTO categories (name) VALUES (?)';
+        db.run(sql, [name], function(err) {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ id: this.lastID, name });
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router; 

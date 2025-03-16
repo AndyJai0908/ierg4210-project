@@ -7,17 +7,11 @@ const cors = require('cors');
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/images', express.static('public/images'));
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 // Update CORS settings to allow your VM IP
 app.use(cors({
-    origin: [
-        'http://s21.ierg4210.ie.cuhk.edu.hk',
-        'https://s21.ierg4210.ie.cuhk.edu.hk',
-        'http://localhost:3000'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Accept'],
+    origin: ['http://s21.ierg4210.ie.cuhk.edu.hk', 'http://localhost:3000'],
     credentials: true
 }));
 
