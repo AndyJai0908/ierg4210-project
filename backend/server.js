@@ -38,22 +38,22 @@ app.use(cookieParser());
 app.use(cors({
     origin: ['http://s21.ierg4210.ie.cuhk.edu.hk', 'https://s21.ierg4210.ie.cuhk.edu.hk'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'X-CSRF-Token']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Accept']
 }));
 
 // Session configuration
 app.use(session({
     name: 'sessionId',
     secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: true, // Enable for HTTPS
+        secure: true,
         maxAge: 24 * 60 * 60 * 1000,
-        sameSite: 'strict',
-        domain: '.ierg4210.ie.cuhk.edu.hk'
+        sameSite: 'lax',
+        domain: 'ierg4210.ie.cuhk.edu.hk'
     },
     rolling: true
 }));
@@ -75,13 +75,35 @@ app.use((req, res, next) => {
 // Auth routes should be before CSRF protection
 app.use('/api/auth', authRoutes);
 
-// CSRF protection with custom error handling
+// Move CSRF token route before CSRF middleware
+app.get('/api/csrf-token', (req, res) => {
+    try {
+        const token = req.csrfToken();
+        console.log('Generated CSRF token:', token); // Debug log
+        
+        res.cookie('XSRF-TOKEN', token, {
+            httpOnly: false,
+            secure: true,
+            sameSite: 'lax',
+            domain: 'ierg4210.ie.cuhk.edu.hk'
+        });
+        res.json({ csrfToken: token });
+    } catch (error) {
+        console.error('Error generating CSRF token:', error);
+        res.status(500).json({ 
+            error: 'Failed to generate CSRF token',
+            details: error.message 
+        });
+    }
+});
+
+// Update CSRF configuration
 app.use(csrf({ 
     cookie: {
         httpOnly: true,
-        secure: true, // Enable for HTTPS
-        sameSite: 'strict',
-        domain: '.ierg4210.ie.cuhk.edu.hk'
+        secure: true,
+        sameSite: 'lax',
+        domain: 'ierg4210.ie.cuhk.edu.hk'
     }
 }));
 
@@ -108,18 +130,6 @@ app.use('/api/admin', apiLimiter);
 app.use('/api/products', productLimiter);
 app.use('/api/categories', productLimiter);
 app.use('/api/paypal', apiLimiter);
-
-// Route to get CSRF token
-app.get('/api/csrf-token', (req, res) => {
-    const token = req.csrfToken();
-    res.cookie('XSRF-TOKEN', token, {
-        httpOnly: false,
-        secure: true,
-        sameSite: 'strict',
-        domain: '.ierg4210.ie.cuhk.edu.hk'
-    });
-    res.json({ csrfToken: token });
-});
 
 // Public routes
 app.get('/api/products', async (req, res) => {

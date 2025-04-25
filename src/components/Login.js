@@ -18,7 +18,8 @@ function Login({ onLoginSuccess }) {
 
         try {
             // First get CSRF token
-            const csrfResponse = await fetch(`${API_BASE_URL}/auth/csrf-token`, {
+            console.log('Fetching CSRF token...'); // Debug log
+            const csrfResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
                 credentials: 'include',
                 headers: {
                     'Accept': 'application/json',
@@ -27,10 +28,16 @@ function Login({ onLoginSuccess }) {
             });
             
             if (!csrfResponse.ok) {
-                throw new Error('Failed to get CSRF token');
+                const errorData = await csrfResponse.json();
+                throw new Error(`Failed to get CSRF token: ${errorData.error || csrfResponse.statusText}`);
             }
             
-            const { csrfToken } = await csrfResponse.json();
+            const csrfData = await csrfResponse.json();
+            console.log('Received CSRF token response:', csrfData); // Debug log
+            
+            if (!csrfData.csrfToken) {
+                throw new Error('No CSRF token in response');
+            }
 
             // Then attempt login
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -38,7 +45,7 @@ function Login({ onLoginSuccess }) {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
+                    'X-CSRF-Token': csrfData.csrfToken
                 },
                 credentials: 'include',
                 body: JSON.stringify({ 
@@ -60,7 +67,7 @@ function Login({ onLoginSuccess }) {
             }
         } catch (err) {
             console.error('Login error:', err);
-            setError('Network error. Please try again later. ' + err.message);
+            setError(`Authentication error: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
