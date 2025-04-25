@@ -237,6 +237,33 @@ app.get('/api/debug/products-with-images', async (req, res) => {
     }
 });
 
+// Direct image serving endpoint
+app.get('/api/image/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'public/images/products', filename);
+    const fs = require('fs');
+    
+    try {
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).send('Image not found');
+        }
+        
+        const image = fs.readFileSync(filePath);
+        const mimeType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') 
+            ? 'image/jpeg' 
+            : filename.endsWith('.png') 
+                ? 'image/png' 
+                : 'application/octet-stream';
+        
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+        res.send(image);
+    } catch (error) {
+        console.error('Error serving image:', error);
+        res.status(500).send('Error serving image');
+    }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Global error:', {

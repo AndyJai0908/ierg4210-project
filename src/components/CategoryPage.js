@@ -59,7 +59,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`${API_BASE_URL.replace('/api', '')}/images/products/${product.image || product.thumbnail}`}
+                                src={`${API_BASE_URL}/image/${product.image || product.thumbnail}`}
                                 alt={product.name}
                                 className="product-thumbnail"
                                 onError={(e) => {
@@ -68,10 +68,10 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                                     
                                     // Try thumbnail if image failed
                                     if (e.target.src.includes(product.image) && product.thumbnail && product.image !== product.thumbnail) {
-                                        e.target.src = `${API_BASE_URL.replace('/api', '')}/images/products/${product.thumbnail}`;
+                                        e.target.src = `${API_BASE_URL}/image/${product.thumbnail}`;
                                     } else {
-                                        // If both failed, use a hardcoded existing image
-                                        e.target.src = `${API_BASE_URL.replace('/api', '')}/images/products/test-1742111917930.jpg`;
+                                        // Simple gray placeholder
+                                        e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
                                     }
                                 }}
                             />
