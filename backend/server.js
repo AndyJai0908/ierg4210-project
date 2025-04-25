@@ -9,8 +9,8 @@ const authRoutes = require('./routes/auth');
 const paypalRoutes = require('./routes/paypal');
 const rateLimit = require('express-rate-limit');
 const csrfProtection = require('./middleware/csrf');
-const { Tokens } = require('csrf');
-const tokens = new Tokens();
+const csrf = require('csrf');
+const tokens = new csrf();
 
 const app = express();
 

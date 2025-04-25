@@ -1,7 +1,7 @@
-const Tokens = require('csrf');
-const tokens = new Tokens();
+const csrf = require('csrf');
+const tokens = new csrf();
 
-const csrf = (req, res, next) => {
+const csrfMiddleware = (req, res, next) => {
     // Skip for non-modifying methods
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
         return next();
@@ -47,4 +47,4 @@ const csrf = (req, res, next) => {
     next();
 };
 
-module.exports = csrf; 
+module.exports = csrfMiddleware; 
