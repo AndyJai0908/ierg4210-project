@@ -50,13 +50,12 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`${API_BASE_URL}/images/products/${product.thumbnail || product.image}`}
+                                src={`${API_BASE_URL}/images/${product.pid}/${product.thumbnail || product.image}`}
                                 alt={product.name}
                                 className="product-thumbnail"
                                 onError={(e) => {
-                                    console.log('Image load error:', e);
                                     e.target.onerror = null;
-                                    e.target.src = '/placeholder.jpg';
+                                    e.target.src = `${process.env.PUBLIC_URL}/placeholder.png`;
                                 }}
                             />
                             <h3>{product.name}</h3>
