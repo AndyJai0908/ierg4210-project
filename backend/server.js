@@ -170,38 +170,21 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', csrfProtection, adminRoutes);
 app.use('/api/paypal', csrfProtection, paypalRoutes);
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
+// Static files - Make these more explicit
 app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Add route to debug image paths
-app.get('/api/debug/images', (req, res) => {
-    const productsPath = path.join(__dirname, 'public/images/products');
+// Add a route to check if images are accessible
+app.get('/api/check-image/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'public/images/products', filename);
     const fs = require('fs');
     
-    try {
-        // Check if directory exists
-        if (!fs.existsSync(productsPath)) {
-            return res.json({
-                error: 'Products image directory does not exist',
-                path: productsPath
-            });
-        }
-        
-        // List files in directory
-        const files = fs.readdirSync(productsPath);
-        
-        res.json({
-            path: productsPath,
-            files: files,
-            exists: true
-        });
-    } catch (error) {
-        res.json({
-            error: error.message,
-            path: productsPath
-        });
+    if (fs.existsSync(filePath)) {
+        res.json({ exists: true, path: filePath });
+    } else {
+        res.json({ exists: false, path: filePath });
     }
 });
 
@@ -235,6 +218,21 @@ app.get('/api/debug/products', async (req, res) => {
         });
     } catch (err) {
         console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add this route to see what's in the database
+app.get('/api/debug/products-with-images', async (req, res) => {
+    try {
+        db.all('SELECT pid, name, image, thumbnail FROM products', [], (err, rows) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json(rows);
+        });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });

@@ -52,14 +52,20 @@ function ProductPage({ onAddToCart }) {
       <article className="product-detail">
         <div className="product-image">
           <img 
-            src={product.image 
-              ? `${API_BASE_URL}/images/products/${product.image}`
-              : '/images/placeholder.jpg'
-            } 
-            alt={product.name} 
+            src={`${API_BASE_URL.replace('/api', '')}/images/products/${product.image || product.thumbnail}`}
+            alt={product.name}
+            className="product-image"
             onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/images/placeholder.jpg';
+                console.log('Image load error:', e.target.src);
+                e.target.onerror = null;
+                
+                // Try thumbnail if image failed
+                if (e.target.src.includes(product.image) && product.thumbnail && product.image !== product.thumbnail) {
+                    e.target.src = `${API_BASE_URL.replace('/api', '')}/images/products/${product.thumbnail}`;
+                } else {
+                    // If both failed, use a hardcoded existing image
+                    e.target.src = `${API_BASE_URL.replace('/api', '')}/images/products/test-1742111917930.jpg`;
+                }
             }}
           />
         </div>

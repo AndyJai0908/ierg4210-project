@@ -59,13 +59,20 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`https://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.image || product.thumbnail}`}
+                                src={`${API_BASE_URL.replace('/api', '')}/images/products/${product.image || product.thumbnail}`}
                                 alt={product.name}
                                 className="product-thumbnail"
                                 onError={(e) => {
-                                    console.log('Image load error:', e.target.src);
+                                    console.log('Image load error for:', product.name, 'Attempted URL:', e.target.src);
                                     e.target.onerror = null;
-                                    e.target.src = 'https://s21.ierg4210.ie.cuhk.edu.hk/images/products/test-1742111917930.jpg';
+                                    
+                                    // Try thumbnail if image failed
+                                    if (e.target.src.includes(product.image) && product.thumbnail && product.image !== product.thumbnail) {
+                                        e.target.src = `${API_BASE_URL.replace('/api', '')}/images/products/${product.thumbnail}`;
+                                    } else {
+                                        // If both failed, use a hardcoded existing image
+                                        e.target.src = `${API_BASE_URL.replace('/api', '')}/images/products/test-1742111917930.jpg`;
+                                    }
                                 }}
                             />
                             <h3>{product.name}</h3>
