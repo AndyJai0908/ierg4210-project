@@ -59,13 +59,13 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`${API_BASE_URL}/images/products/${product.image || 'default.jpg'}`}
+                                src={`https://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.image || product.thumbnail}`}
                                 alt={product.name}
                                 className="product-thumbnail"
                                 onError={(e) => {
                                     console.log('Image load error:', e.target.src);
                                     e.target.onerror = null;
-                                    e.target.src = '/placeholder.png';
+                                    e.target.src = 'https://s21.ierg4210.ie.cuhk.edu.hk/images/products/test-1742111917930.jpg';
                                 }}
                             />
                             <h3>{product.name}</h3>

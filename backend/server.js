@@ -171,7 +171,7 @@ app.use('/api/admin', csrfProtection, adminRoutes);
 app.use('/api/paypal', csrfProtection, paypalRoutes);
 
 // Static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
 
@@ -202,6 +202,40 @@ app.get('/api/debug/images', (req, res) => {
             error: error.message,
             path: productsPath
         });
+    }
+});
+
+// Add a specific route for product images
+app.get('/images/products/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'public/images/products', filename);
+    
+    console.log('Image requested:', filename);
+    console.log('Looking for file at:', filePath);
+    
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error('Error sending image:', err);
+            res.status(404).send('Image not found');
+        }
+    });
+});
+
+// Add a debug endpoint to check product data
+app.get('/api/debug/products', async (req, res) => {
+    try {
+        const rows = await getAllProducts();
+        res.json({
+            products: rows.map(p => ({
+                pid: p.pid,
+                name: p.name,
+                image: p.image,
+                thumbnail: p.thumbnail
+            }))
+        });
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
