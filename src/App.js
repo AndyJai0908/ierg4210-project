@@ -235,13 +235,15 @@ function AppContent() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/logout', {
+      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
 
       if (response.ok) {
         setUser(null);
+        setIsLoggedIn(false);
+        setIsAdmin(false);
         navigate('/');
       }
     } catch (error) {

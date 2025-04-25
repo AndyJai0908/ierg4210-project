@@ -4,19 +4,21 @@ import './Login.css';
 
 const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
-const Login = ({ onLoginSuccess }) => {
+function Login({ onLoginSuccess }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
-            // Get CSRF token first
-            const csrfResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
+            // First get CSRF token
+            const csrfResponse = await fetch(`${API_BASE_URL}/auth/csrf-token`, {
                 credentials: 'include'
             });
             const { csrfToken } = await csrfResponse.json();
@@ -24,34 +26,37 @@ const Login = ({ onLoginSuccess }) => {
             // Then attempt login
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': csrfToken
                 },
+                credentials: 'include',
                 body: JSON.stringify({ email, password })
             });
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Login failed');
-            }
-
-            if (data.success) {
-                onLoginSuccess(data);
+            if (response.ok) {
+                if (onLoginSuccess) {
+                    onLoginSuccess(data.user);
+                }
                 navigate('/');
+            } else {
+                setError(data.message || 'Login failed. Please check your credentials.');
             }
         } catch (err) {
-            setError(err.message || 'Login failed. Please try again.');
+            setError('Network error. Please try again later.');
+            console.error('Login error:', err);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <div className="login-container">
-            <form onSubmit={handleSubmit} className="login-form">
-                <h2>Login</h2>
-                {error && <div className="error-message">{error}</div>}
+            <h2>Login</h2>
+            {error && <div className="error-message">{error}</div>}
+            <form onSubmit={handleSubmit}>
                 <div className="form-group">
                     <label htmlFor="email">Email:</label>
                     <input
@@ -72,10 +77,12 @@ const Login = ({ onLoginSuccess }) => {
                         required
                     />
                 </div>
-                <button type="submit" className="login-button">Login</button>
+                <button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Logging in...' : 'Login'}
+                </button>
             </form>
         </div>
     );
-};
+}
 
 export default Login; 
