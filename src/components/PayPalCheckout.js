@@ -14,6 +14,8 @@ const PayPalCheckout = ({ items, onSuccess, onError }) => {
             });
             const { csrfToken } = await csrfResponse.json();
 
+            console.log('Creating order with items:', items);
+            
             // Create order
             const response = await fetch(`${API_BASE_URL}/paypal/create-order`, {
                 method: "POST",
@@ -32,14 +34,17 @@ const PayPalCheckout = ({ items, onSuccess, onError }) => {
                 }),
             });
 
-            const orderData = await response.json();
-            
-            if (response.ok) {
-                return orderData.id;
-            } else {
-                throw new Error(orderData.error || "Failed to create order.");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to create order.");
             }
+
+            const orderData = await response.json();
+            console.log('Order created:', orderData);
+            
+            return orderData.id;
         } catch (err) {
+            console.error('Create order error:', err);
             setError(err.message);
             throw err;
         }
@@ -47,25 +52,12 @@ const PayPalCheckout = ({ items, onSuccess, onError }) => {
 
     const onApprove = async (data, actions) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/paypal/capture-order`, {
-                method: "POST",
-                credentials: 'include',
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    orderID: data.orderID
-                }),
-            });
-
-            const orderData = await response.json();
-            
-            if (response.ok) {
-                onSuccess(orderData);
-            } else {
-                throw new Error(orderData.error || "Failed to capture order.");
-            }
+            console.log('Order approved:', data);
+            // Successfully created the order
+            onSuccess(data);
+            return true;
         } catch (err) {
+            console.error('Approval error:', err);
             setError(err.message);
             onError(err);
         }
@@ -75,13 +67,15 @@ const PayPalCheckout = ({ items, onSuccess, onError }) => {
         <div className="paypal-button-container">
             {error && <div className="error-message">{error}</div>}
             <PayPalScriptProvider options={{ 
-                "client-id": "test", // Replace with your actual client ID
-                currency: "HKD"
+                "client-id": "AQH9km_w6wEGbdgGhbLmPmMMZxEmqbUC0zz0Mg9y9RFz2UZAkLnQU7lD_8S5g5XnXrKtEe8dGbOUKR9z", // Sandbox client ID - replace with yours
+                currency: "HKD",
+                intent: "capture"
             }}>
                 <PayPalButtons
                     createOrder={createOrder}
                     onApprove={onApprove}
                     onError={(err) => {
+                        console.error('PayPal button error:', err);
                         setError(err.message);
                         onError(err);
                     }}

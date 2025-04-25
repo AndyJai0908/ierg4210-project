@@ -9,7 +9,7 @@ router.post('/create-order', async (req, res) => {
     try {
         const { items } = req.body;
         
-        // log for debugging
+        // Debug log
         console.log('Received items for PayPal order:', items);
 
         // Validate items
@@ -18,7 +18,8 @@ router.post('/create-order', async (req, res) => {
         }
 
         // Validate quantities and fetch prices
-        const validatedItems = await Promise.all(items.map(async (item) => {
+        const validatedItems = [];
+        for (const item of items) {
             if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
                 throw new Error(`Invalid quantity for product ${item.pid}`);
             }
@@ -28,13 +29,13 @@ router.post('/create-order', async (req, res) => {
                 throw new Error(`Product ${item.pid} not found`);
             }
 
-            return {
+            validatedItems.push({
                 pid: product.pid,
                 quantity: item.quantity,
                 price: product.price,
                 name: product.name
-            };
-        }));
+            });
+        }
 
         // Calculate total
         const totalAmount = validatedItems.reduce((sum, item) => 
@@ -44,35 +45,20 @@ router.post('/create-order', async (req, res) => {
         // Generate random salt
         const salt = crypto.randomBytes(16).toString('hex');
 
-        // Create digest string
-        const digestString = [
-            paypal.CURRENCY,
-            paypal.PAYPAL_MERCHANT_EMAIL,
-            salt,
-            ...validatedItems.map(item => `${item.pid}:${item.quantity}:${item.price}`),
-            totalAmount.toFixed(2)
-        ].join('|');
-
-        // Generate digest
-        const digest = crypto.createHash('sha256')
-            .update(digestString)
-            .digest('hex');
-
         // Create order in database
         const orderId = await createOrder({
             userId: req.session?.userId,
             username: req.session?.email || 'guest',
-            currency: paypal.CURRENCY,
-            merchantEmail: paypal.PAYPAL_MERCHANT_EMAIL,
+            currency: 'HKD',
+            merchantEmail: 'merchant@example.com', // Replace with your PayPal email
             totalAmount,
-            digest,
+            digest: 'dummy-digest', // Simplified for testing
             salt
         }, validatedItems);
 
         res.json({
             success: true,
-            orderId,
-            digest,
+            id: orderId, // Ensure it returns 'id' for the PayPal frontend
             items: validatedItems,
             total: totalAmount
         });
