@@ -1,3 +1,5 @@
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
+
 export class CartItem {
     constructor(pid, quantity, name = '', price = 0) {
         this.pid = pid;
@@ -55,7 +57,7 @@ export class ShoppingCart {
     async refreshAllItems() {
         const promises = Array.from(this.items.values()).map(async (item) => {
             try {
-                const response = await fetch(`http://localhost:5000/api/products/${item.pid}`);
+                const response = await fetch(`${API_BASE_URL}/products/${item.pid}`);
                 if (!response.ok) {
                     throw new Error('Product not found');
                 }
@@ -72,7 +74,7 @@ export class ShoppingCart {
 
     async addItem(pid, quantity = 1) {
         try {
-            const response = await fetch(`http://localhost:5000/api/products/${pid}`);
+            const response = await fetch(`${API_BASE_URL}/products/${pid}`);
             if (!response.ok) {
                 throw new Error('Product not found');
             }
