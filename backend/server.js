@@ -114,8 +114,9 @@ app.get('/api/csrf-token', (req, res) => {
     const token = req.csrfToken();
     res.cookie('XSRF-TOKEN', token, {
         httpOnly: false,
-        secure: false, // Changed to false for development
-        sameSite: 'lax'
+        secure: true,
+        sameSite: 'strict',
+        domain: '.ierg4210.ie.cuhk.edu.hk'
     });
     res.json({ csrfToken: token });
 });
@@ -178,6 +179,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 }); 
