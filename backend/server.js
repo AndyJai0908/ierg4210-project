@@ -8,7 +8,9 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const paypalRoutes = require('./routes/paypal');
 const rateLimit = require('express-rate-limit');
-const csrfProtection = require('./middleware/csrf'); // Use our custom CSRF middleware
+const csrfProtection = require('./middleware/csrf');
+const { Tokens } = require('csrf');
+const tokens = new Tokens();
 
 const app = express();
 
@@ -36,7 +38,7 @@ app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-    origin: ['http://s21.ierg4210.ie.cuhk.edu.hk', 'https://s21.ierg4210.ie.cuhk.edu.hk'],
+    origin: ['http://localhost:3000', 'http://s21.ierg4210.ie.cuhk.edu.hk', 'https://s21.ierg4210.ie.cuhk.edu.hk'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Accept']
@@ -47,12 +49,11 @@ app.use(session({
     name: 'sessionId',
     secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
     resave: false,
-    saveUninitialized: true, // Changed to true to ensure session is always created
+    saveUninitialized: true, // Create session for all visitors
     cookie: {
         httpOnly: true,
-        secure: false, // Temporarily set to false for testing
-        maxAge: 24 * 60 * 60 * 1000,
-        sameSite: 'lax'
+        secure: false, // Set to false for development
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
@@ -62,8 +63,7 @@ app.use((req, res, next) => {
         method: req.method,
         path: req.path,
         sessionID: req.sessionID,
-        session: req.session,
-        cookies: req.cookies
+        session: req.session
     });
     next();
 });
@@ -89,19 +89,69 @@ app.get('/api/categories', async (req, res) => {
     }
 });
 
+app.get('/api/categories/:catid/products', async (req, res) => {
+    try {
+        db.all('SELECT * FROM products WHERE catid = ?', [req.params.catid], (err, rows) => {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json(rows || []);
+        });
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/products/:pid', async (req, res) => {
+    try {
+        const product = await getProduct(req.params.pid);
+        if (!product) {
+            res.status(404).json({ error: 'Product not found' });
+            return;
+        }
+        res.json(product);
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Auth status endpoint
+app.get('/api/auth/status', (req, res) => {
+    console.log('Checking auth status:', {
+        sessionExists: !!req.session,
+        userId: req.session?.userId,
+        isAdmin: req.session?.isAdmin
+    });
+
+    res.json({
+        isLoggedIn: !!req.session.userId,
+        isAdmin: !!req.session.isAdmin,
+        user: req.session.user || null
+    });
+});
+
 // CSRF token endpoint
 app.get('/api/csrf-token', (req, res) => {
     try {
         if (!req.session) {
-            throw new Error('Session not initialized');
+            return res.status(500).json({ error: 'Session not available' });
         }
         
-        // Generate new CSRF token using our custom middleware
-        const csrfToken = res.locals.csrfNonce;
-        
-        if (!csrfToken) {
-            throw new Error('Failed to generate CSRF token');
+        // Generate a new secret if it doesn't exist
+        if (!req.session.csrfSecret) {
+            req.session.csrfSecret = tokens.secretSync();
         }
+        
+        // Generate token
+        const csrfToken = tokens.create(req.session.csrfSecret);
+        
+        console.log('Generated CSRF token:', {
+            sessionID: req.sessionID,
+            tokenLength: csrfToken.length
+        });
         
         res.json({ csrfToken });
     } catch (error) {
@@ -113,13 +163,16 @@ app.get('/api/csrf-token', (req, res) => {
     }
 });
 
-// Apply CSRF protection to all routes after this point
-app.use(csrfProtection);
-
-// Protected routes
-app.use('/api/admin', adminRoutes);
+// Auth routes
 app.use('/api/auth', authRoutes);
-app.use('/api/paypal', paypalRoutes);
+
+// Routes that need CSRF protection
+app.use('/api/admin', csrfProtection, adminRoutes);
+app.use('/api/paypal', csrfProtection, paypalRoutes);
+
+// Static files
+app.use(express.static('public'));
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -140,21 +193,6 @@ app.use('/api/admin', apiLimiter);
 app.use('/api/products', productLimiter);
 app.use('/api/categories', productLimiter);
 app.use('/api/paypal', apiLimiter);
-
-// Get single product
-app.get('/api/products/:pid', async (req, res) => {
-    try {
-        const product = await getProduct(req.params.pid);
-        if (!product) {
-            res.status(404).json({ error: 'Product not found' });
-            return;
-        }
-        res.json(product);
-    } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {

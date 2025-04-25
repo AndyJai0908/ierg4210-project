@@ -4,7 +4,7 @@ import './Login.css';
 
 const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
-function Login({ onLoginSuccess }) {
+function Login({ onLoginSuccess, setUser }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -32,10 +32,10 @@ function Login({ onLoginSuccess }) {
                 throw new Error(`Failed to get CSRF token: ${errorData.error || errorData.details || csrfResponse.statusText}`);
             }
             
-            const csrfData = await csrfResponse.json();
-            console.log('CSRF token received');
+            const { csrfToken } = await csrfResponse.json();
+            console.log('CSRF token received successfully');
             
-            if (!csrfData.csrfToken) {
+            if (!csrfToken) {
                 throw new Error('No CSRF token in response');
             }
 
@@ -45,7 +45,7 @@ function Login({ onLoginSuccess }) {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfData.csrfToken
+                    'X-CSRF-Token': csrfToken
                 },
                 credentials: 'include',
                 body: JSON.stringify({ 
@@ -58,13 +58,16 @@ function Login({ onLoginSuccess }) {
 
             if (response.ok) {
                 console.log('Login successful');
+                if (setUser) {
+                    setUser(data.user);
+                }
                 if (onLoginSuccess) {
                     onLoginSuccess(data.user);
                 }
                 navigate('/');
             } else {
                 console.error('Login failed:', data);
-                setError(data.message || 'Login failed. Please check your credentials.');
+                setError(data.error || 'Login failed. Please check your credentials.');
             }
         } catch (err) {
             console.error('Login error:', err);

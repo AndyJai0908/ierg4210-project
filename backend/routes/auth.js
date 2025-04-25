@@ -126,7 +126,7 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('User verified:', {
+        console.log('User verified successfully:', {
             userId: user.userid,
             isAdmin: user.is_admin === 1
         });
@@ -135,6 +135,10 @@ router.post('/login', async (req, res) => {
         req.session.userId = user.userid;
         req.session.email = user.email;
         req.session.isAdmin = user.is_admin === 1;
+        req.session.user = {
+            email: user.email,
+            isAdmin: user.is_admin === 1
+        };
 
         // Save session before sending response
         req.session.save((err) => {
