@@ -4,7 +4,7 @@ import PayPalCheckout from './PayPalCheckout';
 
 const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
-const Cart = ({ items, updateQuantity, removeItem }) => {
+const Cart = ({ items, onUpdateQuantity, onRemoveItem }) => {
     const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
     const handleCheckoutSuccess = async (details) => {
@@ -26,7 +26,7 @@ const Cart = ({ items, updateQuantity, removeItem }) => {
             }
 
             // Clear cart after successful payment
-            items.forEach(item => removeItem(item.pid));
+            items.forEach(item => onRemoveItem(item.pid));
         } catch (error) {
             console.error('Payment processing error:', error);
         }
@@ -44,16 +44,16 @@ const Cart = ({ items, updateQuantity, removeItem }) => {
         <div className="cart">
             {items.map((item) => (
                 <div key={item.pid} className="cart-item">
-                    <img src={item.thumbnail} alt={item.name} className="cart-item-image" />
+                    <img src={`${API_BASE_URL}/image/${item.image || 'placeholder.jpg'}`} alt={item.name} className="cart-item-image" />
                     <div className="cart-item-details">
                         <h3>{item.name}</h3>
                         <p>HK${item.price}</p>
                         <div className="quantity-controls">
-                            <button onClick={() => updateQuantity(item.pid, Math.max(0, item.quantity - 1))}>-</button>
+                            <button onClick={() => onUpdateQuantity(item.pid, Math.max(1, item.quantity - 1))}>-</button>
                             <span>{item.quantity}</span>
-                            <button onClick={() => updateQuantity(item.pid, item.quantity + 1)}>+</button>
+                            <button onClick={() => onUpdateQuantity(item.pid, item.quantity + 1)}>+</button>
                         </div>
-                        <button onClick={() => removeItem(item.pid)} className="remove-button">Remove</button>
+                        <button onClick={() => onRemoveItem(item.pid)} className="remove-button">Remove</button>
                     </div>
                 </div>
             ))}

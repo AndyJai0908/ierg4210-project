@@ -20,12 +20,12 @@ router.post('/create-order', async (req, res) => {
         // Validate quantities and fetch prices
         const validatedItems = await Promise.all(items.map(async (item) => {
             if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-                throw new Error(`Invalid quantity for product ${item.item_number}`);
+                throw new Error(`Invalid quantity for product ${item.pid}`);
             }
 
-            const product = await getProduct(item.item_number);
+            const product = await getProduct(item.pid);
             if (!product) {
-                throw new Error(`Product ${item.item_number} not found`);
+                throw new Error(`Product ${item.pid} not found`);
             }
 
             return {
