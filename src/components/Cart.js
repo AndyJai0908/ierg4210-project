@@ -7,29 +7,10 @@ const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 const Cart = ({ items, onUpdateQuantity, onRemoveItem }) => {
     const totalPrice = items.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-    const handleCheckoutSuccess = async (details) => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/paypal/success`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    orderID: details.orderID,
-                    items: items
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to process payment');
-            }
-
-            // Clear cart after successful payment
-            items.forEach(item => onRemoveItem(item.pid));
-        } catch (error) {
-            console.error('Payment processing error:', error);
-        }
+    const handleCheckoutSuccess = (orderData) => {
+        console.log('Checkout successful!', orderData);
+        // Clear cart after successful checkout
+        items.forEach(item => onRemoveItem(item.pid));
     };
 
     const handleCheckoutError = (error) => {

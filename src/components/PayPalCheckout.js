@@ -1,94 +1,138 @@
-import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
-const PayPalCheckout = ({ items, onSuccess, onError }) => {
+function PayPalCheckout({ items, onSuccess, onError }) {
+    const [loading, setLoading] = useState(false);
+    const [csrfToken, setCsrfToken] = useState('');
     const [error, setError] = useState(null);
 
-    const createOrder = async () => {
-        try {
-            // Get CSRF token
-            const csrfResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
-                credentials: 'include'
-            });
-            const { csrfToken } = await csrfResponse.json();
+    // Fetch CSRF token
+    useEffect(() => {
+        const fetchCsrfToken = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/csrf-token`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                setCsrfToken(data.csrfToken);
+            } catch (error) {
+                console.error('Error fetching CSRF token:', error);
+                setError('Failed to fetch CSRF token');
+            }
+        };
 
-            console.log('Creating order with items:', items);
-            
-            // Create order
+        fetchCsrfToken();
+    }, []);
+
+    const handleCheckout = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        try {
+            // create an order on server
             const response = await fetch(`${API_BASE_URL}/paypal/create-order`, {
-                method: "POST",
-                credentials: 'include',
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                     'X-CSRF-Token': csrfToken
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     items: items.map(item => ({
-                        pid: item.pid,
+                        item_name: item.name,
+                        item_number: item.pid,
                         quantity: item.quantity,
-                        price: item.price,
-                        name: item.name
+                        amount: item.price
                     }))
-                }),
+                })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to create order.");
+                throw new Error(errorData.error || 'Failed to create PayPal order');
             }
 
             const orderData = await response.json();
-            console.log('Order created:', orderData);
             
-            return orderData.id;
-        } catch (err) {
-            console.error('Create order error:', err);
-            setError(err.message);
-            throw err;
+            if (!orderData.success) {
+                throw new Error(orderData.error || 'Failed to create order');
+            }
+
+            // Update form with order data
+            document.getElementById('paypal-invoice').value = orderData.orderId;
+            document.getElementById('paypal-custom').value = orderData.digest;
+
+            // Update return URLs with order ID
+            document.getElementById('paypal-return').value = `${window.location.origin}/payment-success?invoice=${orderData.orderId}`;
+            document.getElementById('paypal-cancel').value = `${window.location.origin}/payment-cancelled?invoice=${orderData.orderId}`;
+            
+            // Submit the form with PayPal parameters
+            document.getElementById('paypal-form').submit();
+            
+            if (onSuccess) {
+                onSuccess(orderData);
+            }
+
+        } catch (error) {
+            console.error('Checkout error:', error);
+            setError(error.message || 'Checkout failed');
+            if (onError) onError(error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const onApprove = async (data, actions) => {
-        try {
-            console.log('Order approved:', data);
-            // Successfully created the order
-            onSuccess(data);
-            return true;
-        } catch (err) {
-            console.error('Approval error:', err);
-            setError(err.message);
-            onError(err);
-        }
-    };
+    // Calculate total amount
+    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     return (
-        <div className="paypal-button-container">
+        <div className="paypal-checkout">
             {error && <div className="error-message">{error}</div>}
-            <PayPalScriptProvider options={{ 
-                "client-id": "AQH9km_w6wEGbdgGhbLmPmMMZxEmqbUC0zz0Mg9y9RFz2UZAkLnQU7lD_8S5g5XnXrKtEe8dGbOUKR9z", // Sandbox client ID - replace with yours
-                currency: "HKD",
-                intent: "capture"
-            }}>
-                <PayPalButtons
-                    createOrder={createOrder}
-                    onApprove={onApprove}
-                    onError={(err) => {
-                        console.error('PayPal button error:', err);
-                        setError(err.message);
-                        onError(err);
-                    }}
-                    style={{
-                        layout: "horizontal",
-                        color: "gold",
-                        shape: "rect",
-                        label: "pay"
-                    }}
-                />
-            </PayPalScriptProvider>
+            <form 
+                id="paypal-form"
+                action="https://www.sandbox.paypal.com/cgi-bin/webscr" 
+                method="post"
+                onSubmit={handleCheckout}
+            >
+                {/* PayPal required fields */}
+                <input type="hidden" name="cmd" value="_cart" />
+                <input type="hidden" name="upload" value="1" />
+                <input type="hidden" name="business" value="sb-t4qwr40698380@business.example.com" />
+                <input type="hidden" name="charset" value="utf-8" />
+                <input type="hidden" name="currency_code" value="HKD" />
+                <input type="hidden" name="lc" value="HK" />
+                <input type="hidden" id="paypal-custom" name="custom" value="" />
+                <input type="hidden" id="paypal-invoice" name="invoice" value="" />
+                <input type="hidden" name="no_shipping" value="1" />
+                <input type="hidden" name="rm" value="1" /> {/* Return method: GET */}
+
+                {/* Cart items */}
+                {items.map((item, index) => (
+                    <React.Fragment key={item.pid}>
+                        <input type="hidden" name={`item_name_${index + 1}`} value={item.name} />
+                        <input type="hidden" name={`item_number_${index + 1}`} value={item.pid} />
+                        <input type="hidden" name={`quantity_${index + 1}`} value={item.quantity} />
+                        <input type="hidden" name={`amount_${index + 1}`} value={item.price.toFixed(2)} />
+                    </React.Fragment>
+                ))}
+
+                {/* Return URLs */}
+                <input type="hidden" id="paypal-return" name="return" value={`${window.location.origin}/payment-success?invoice=PENDING`} />
+                <input type="hidden" id="paypal-cancel" name="cancel_return" value={`${window.location.origin}/payment-cancelled`} />
+                <input type="hidden" name="notify_url" value={`${API_BASE_URL}/paypal/ipn`} />
+
+                <button 
+                    type="submit" 
+                    className="checkout-button"
+                    disabled={loading || items.length === 0 || !csrfToken}
+                >
+                    {loading ? 'Processing...' : `Pay with PayPal`}
+                </button>
+            </form>
         </div>
     );
-};
+}
 
 export default PayPalCheckout; 

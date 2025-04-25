@@ -9,7 +9,7 @@ router.post('/create-order', async (req, res) => {
     try {
         const { items } = req.body;
         
-        // Debug log
+        // log for debugging
         console.log('Received items for PayPal order:', items);
 
         // Validate items
@@ -18,24 +18,26 @@ router.post('/create-order', async (req, res) => {
         }
 
         // Validate quantities and fetch prices
-        const validatedItems = [];
-        for (const item of items) {
+        const validatedItems = await Promise.all(items.map(async (item) => {
+            // For compatibility: Check if we're using item_number (from form) or pid (from API)
+            const productId = item.item_number || item.pid;
+            
             if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
-                throw new Error(`Invalid quantity for product ${item.pid}`);
+                throw new Error(`Invalid quantity for product ${productId}`);
             }
 
-            const product = await getProduct(item.pid);
+            const product = await getProduct(productId);
             if (!product) {
-                throw new Error(`Product ${item.pid} not found`);
+                throw new Error(`Product ${productId} not found`);
             }
 
-            validatedItems.push({
+            return {
                 pid: product.pid,
                 quantity: item.quantity,
                 price: product.price,
                 name: product.name
-            });
-        }
+            };
+        }));
 
         // Calculate total
         const totalAmount = validatedItems.reduce((sum, item) => 
@@ -45,20 +47,35 @@ router.post('/create-order', async (req, res) => {
         // Generate random salt
         const salt = crypto.randomBytes(16).toString('hex');
 
+        // Create digest string
+        const digestString = [
+            paypal.CURRENCY,
+            paypal.PAYPAL_MERCHANT_EMAIL,
+            salt,
+            ...validatedItems.map(item => `${item.pid}:${item.quantity}:${item.price}`),
+            totalAmount.toFixed(2)
+        ].join('|');
+
+        // Generate digest
+        const digest = crypto.createHash('sha256')
+            .update(digestString)
+            .digest('hex');
+
         // Create order in database
         const orderId = await createOrder({
             userId: req.session?.userId,
             username: req.session?.email || 'guest',
-            currency: 'HKD',
-            merchantEmail: 'merchant@example.com', // Replace with your PayPal email
+            currency: paypal.CURRENCY,
+            merchantEmail: paypal.PAYPAL_MERCHANT_EMAIL,
             totalAmount,
-            digest: 'dummy-digest', // Simplified for testing
+            digest,
             salt
         }, validatedItems);
 
         res.json({
             success: true,
-            id: orderId, // Ensure it returns 'id' for the PayPal frontend
+            orderId,
+            digest,
             items: validatedItems,
             total: totalAmount
         });
