@@ -36,7 +36,7 @@ app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-    origin: ['http://s21.ierg4210.ie.cuhk.edu.hk', 'https://s21.ierg4210.ie.cuhk.edu.hk'],
+    origin: true, // Allow all origins for testing - we'll restrict this later
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Accept']
@@ -44,18 +44,14 @@ app.use(cors({
 
 // Session configuration
 app.use(session({
-    name: 'sessionId',
     secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000,
-        sameSite: 'lax',
-        domain: 'ierg4210.ie.cuhk.edu.hk'
-    },
-    rolling: true
+        secure: false, // Set to false for testing
+        sameSite: 'lax'
+    }
 }));
 
 // Debug middleware to log session and auth status
@@ -78,33 +74,34 @@ app.use('/api/auth', authRoutes);
 // Move CSRF token route before CSRF middleware
 app.get('/api/csrf-token', (req, res) => {
     try {
-        const token = req.csrfToken();
-        console.log('Generated CSRF token:', token); // Debug log
+        if (!req.session) {
+            throw new Error('Session not initialized');
+        }
         
-        res.cookie('XSRF-TOKEN', token, {
-            httpOnly: false,
-            secure: true,
-            sameSite: 'lax',
-            domain: 'ierg4210.ie.cuhk.edu.hk'
-        });
+        // Generate token without cookie first
+        const token = csrf({ cookie: false });
+        
+        console.log('Session ID:', req.sessionID);
+        console.log('Generated CSRF token:', token);
+        
+        // Set token in session
+        req.session.csrfToken = token;
+        
         res.json({ csrfToken: token });
     } catch (error) {
-        console.error('Error generating CSRF token:', error);
+        console.error('CSRF Token Generation Error:', error);
         res.status(500).json({ 
             error: 'Failed to generate CSRF token',
-            details: error.message 
+            details: error.message,
+            sessionExists: !!req.session
         });
     }
 });
 
 // Update CSRF configuration
-app.use(csrf({ 
-    cookie: {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        domain: 'ierg4210.ie.cuhk.edu.hk'
-    }
+app.use(csrf({
+    cookie: false, // Don't use cookies for CSRF
+    sessionKey: 'csrfToken' // Use session instead
 }));
 
 // Static files
@@ -113,16 +110,25 @@ app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 // CSRF error handler
 app.use((err, req, res, next) => {
+    console.error('Global error:', {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        code: err.code
+    });
+    
     if (err.code === 'EBADCSRFTOKEN') {
-        console.error('CSRF error:', {
-            path: req.path,
-            method: req.method,
-            token: req.headers['x-csrf-token'],
-            session: req.session
+        return res.status(403).json({
+            error: 'Invalid CSRF token',
+            provided: req.headers['x-csrf-token'],
+            expected: req.session?.csrfToken
         });
-        return res.status(403).json({ error: 'Invalid CSRF token' });
     }
-    next(err);
+    
+    res.status(500).json({
+        error: 'An unexpected error occurred',
+        message: err.message
+    });
 });
 
 // Apply rate limiting to routes (except login)
@@ -181,12 +187,6 @@ app.get('/api/products/:pid', async (req, res) => {
 // Admin and PayPal routes after CSRF protection
 app.use('/api/admin', adminRoutes);
 app.use('/api/paypal', paypalRoutes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Global error:', err);
-    res.status(500).json({ error: 'An unexpected error occurred' });
-});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
