@@ -173,6 +173,37 @@ app.use('/api/paypal', csrfProtection, paypalRoutes);
 // Static files
 app.use(express.static('public'));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
+
+// Add route to debug image paths
+app.get('/api/debug/images', (req, res) => {
+    const productsPath = path.join(__dirname, 'public/images/products');
+    const fs = require('fs');
+    
+    try {
+        // Check if directory exists
+        if (!fs.existsSync(productsPath)) {
+            return res.json({
+                error: 'Products image directory does not exist',
+                path: productsPath
+            });
+        }
+        
+        // List files in directory
+        const files = fs.readdirSync(productsPath);
+        
+        res.json({
+            path: productsPath,
+            files: files,
+            exists: true
+        });
+    } catch (error) {
+        res.json({
+            error: error.message,
+            path: productsPath
+        });
+    }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

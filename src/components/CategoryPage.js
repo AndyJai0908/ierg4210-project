@@ -59,7 +59,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`${API_BASE_URL}/images/products/${product.pid}/${product.thumbnail || product.image || 'default.jpg'}`}
+                                src={`${API_BASE_URL}/images/products/${product.image || 'default.jpg'}`}
                                 alt={product.name}
                                 className="product-thumbnail"
                                 onError={(e) => {

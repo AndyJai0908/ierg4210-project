@@ -394,4 +394,26 @@ router.post('/categories', async (req, res) => {
     }
 });
 
+// Find your upload product image route and update it
+router.post('/upload-image', upload.single('image'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const filename = req.file.filename;
+        console.log('File uploaded:', filename);
+        console.log('File path:', req.file.path);
+        
+        res.json({ 
+            success: true, 
+            filename,
+            url: `/images/products/${filename}`
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ error: 'File upload failed' });
+    }
+});
+
 module.exports = router; 
