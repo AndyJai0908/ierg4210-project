@@ -147,8 +147,12 @@ const verifyUser = async (email, password) => {
 const getAllProducts = () => {
     return new Promise((resolve, reject) => {
         db.all('SELECT * FROM products', [], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
+            if (err) {
+                console.error('Database error in getAllProducts:', err);
+                reject(err);
+            } else {
+                resolve(rows || []);
+            }
         });
     });
 };
@@ -156,8 +160,12 @@ const getAllProducts = () => {
 const getAllCategories = () => {
     return new Promise((resolve, reject) => {
         db.all('SELECT * FROM categories', [], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
+            if (err) {
+                console.error('Database error in getAllCategories:', err);
+                reject(err);
+            } else {
+                resolve(rows || []);
+            }
         });
     });
 };

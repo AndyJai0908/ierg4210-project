@@ -29,14 +29,14 @@ const productLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// Basic middleware
+// Move these routes BEFORE the CSRF middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-    origin: true, // Allow all origins for testing - we'll restrict this later
+    origin: ['http://s21.ierg4210.ie.cuhk.edu.hk', 'https://s21.ierg4210.ie.cuhk.edu.hk'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Accept']
@@ -44,12 +44,14 @@ app.use(cors({
 
 // Session configuration
 app.use(session({
+    name: 'sessionId',
     secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: false, // Set to false for testing
+        secure: false, // Temporarily set to false for testing
+        maxAge: 24 * 60 * 60 * 1000,
         sameSite: 'lax'
     }
 }));
@@ -68,47 +70,82 @@ app.use((req, res, next) => {
     next();
 });
 
-// Auth routes should be before CSRF protection
-app.use('/api/auth', authRoutes);
+// Move public routes BEFORE CSRF middleware
+app.get('/api/products', async (req, res) => {
+    try {
+        const rows = await getAllProducts();
+        if (!rows) {
+            return res.json([]);
+        }
+        res.json(rows);
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
-// Move CSRF token route before CSRF middleware
+app.get('/api/categories', async (req, res) => {
+    try {
+        const rows = await getAllCategories();
+        if (!rows) {
+            return res.json([]);
+        }
+        res.json(rows);
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get products by category - move before CSRF
+app.get('/api/categories/:catid/products', async (req, res) => {
+    try {
+        const rows = await db.all('SELECT * FROM products WHERE catid = ?', [req.params.catid]);
+        res.json(rows || []);
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Auth status endpoint - move before CSRF
+app.get('/api/auth/status', (req, res) => {
+    res.json({
+        isLoggedIn: !!req.session.userId,
+        isAdmin: !!req.session.isAdmin,
+        user: req.session.user || null
+    });
+});
+
+// CSRF token endpoint
 app.get('/api/csrf-token', (req, res) => {
     try {
-        if (!req.session) {
-            throw new Error('Session not initialized');
-        }
-        
-        // Generate token without cookie first
-        const token = csrf({ cookie: false });
-        
-        console.log('Session ID:', req.sessionID);
-        console.log('Generated CSRF token:', token);
-        
-        // Set token in session
-        req.session.csrfToken = token;
-        
+        const token = req.csrfToken();
         res.json({ csrfToken: token });
     } catch (error) {
         console.error('CSRF Token Generation Error:', error);
         res.status(500).json({ 
             error: 'Failed to generate CSRF token',
-            details: error.message,
-            sessionExists: !!req.session
+            details: error.message
         });
     }
 });
 
-// Update CSRF configuration
-app.use(csrf({
-    cookie: false, // Don't use cookies for CSRF
-    sessionKey: 'csrfToken' // Use session instead
+// CSRF protection after public routes
+app.use(csrf({ 
+    cookie: {
+        httpOnly: true,
+        secure: false, // Temporarily set to false for testing
+        sameSite: 'lax'
+    }
 }));
 
-// Static files
-app.use(express.static('public'));
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
+// Protected routes after CSRF
+app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/paypal', paypalRoutes);
 
-// CSRF error handler
+// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Global error:', {
         name: err.name,
@@ -120,8 +157,7 @@ app.use((err, req, res, next) => {
     if (err.code === 'EBADCSRFTOKEN') {
         return res.status(403).json({
             error: 'Invalid CSRF token',
-            provided: req.headers['x-csrf-token'],
-            expected: req.session?.csrfToken
+            details: 'CSRF validation failed'
         });
     }
     
@@ -137,38 +173,6 @@ app.use('/api/products', productLimiter);
 app.use('/api/categories', productLimiter);
 app.use('/api/paypal', apiLimiter);
 
-// Public routes
-app.get('/api/products', async (req, res) => {
-    try {
-        const rows = await getAllProducts();
-        res.json(rows);
-    } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/categories', async (req, res) => {
-    try {
-        const rows = await getAllCategories();
-        res.json(rows);
-    } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Get products by category
-app.get('/api/categories/:catid/products', (req, res) => {
-    db.all('SELECT * FROM products WHERE catid = ?', [req.params.catid], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows);
-    });
-});
-
 // Get single product
 app.get('/api/products/:pid', async (req, res) => {
     try {
@@ -183,10 +187,6 @@ app.get('/api/products/:pid', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// Admin and PayPal routes after CSRF protection
-app.use('/api/admin', adminRoutes);
-app.use('/api/paypal', paypalRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {

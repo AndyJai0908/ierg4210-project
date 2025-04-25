@@ -20,12 +20,20 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                 const response = await fetch(url, {
                     credentials: 'include'
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 console.log('Product data:', data);
-                setProducts(data);
+                
+                // Ensure data is an array
+                setProducts(Array.isArray(data) ? data : []);
             } catch (error) {
-                setError('Error fetching products');
                 console.error('Error:', error);
+                setError('Error fetching products: ' + error.message);
+                setProducts([]); // Set empty array on error
             } finally {
                 setLoading(false);
             }
@@ -35,7 +43,8 @@ function CategoryPage({ onProductClick, onAddToCart }) {
     }, [categoryId]);
 
     if (loading) return <div>Loading...</div>;
-    if (error) return <div>{error}</div>;
+    if (error) return <div className="error-message">{error}</div>;
+    if (!products.length) return <div>No products found.</div>;
 
     return (
         <section className="category-page">
