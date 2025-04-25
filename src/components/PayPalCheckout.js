@@ -1,4 +1,4 @@
-import { PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import React, { useState } from 'react';
 
 const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
@@ -74,20 +74,25 @@ const PayPalCheckout = ({ items, onSuccess, onError }) => {
     return (
         <div className="paypal-button-container">
             {error && <div className="error-message">{error}</div>}
-            <PayPalButtons
-                createOrder={createOrder}
-                onApprove={onApprove}
-                onError={(err) => {
-                    setError(err.message);
-                    onError(err);
-                }}
-                style={{
-                    layout: "horizontal",
-                    color: "gold",
-                    shape: "rect",
-                    label: "pay"
-                }}
-            />
+            <PayPalScriptProvider options={{ 
+                "client-id": "test", // Replace with your actual client ID
+                currency: "HKD"
+            }}>
+                <PayPalButtons
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    onError={(err) => {
+                        setError(err.message);
+                        onError(err);
+                    }}
+                    style={{
+                        layout: "horizontal",
+                        color: "gold",
+                        shape: "rect",
+                        label: "pay"
+                    }}
+                />
+            </PayPalScriptProvider>
         </div>
     );
 };
