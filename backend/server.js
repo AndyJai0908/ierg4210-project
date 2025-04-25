@@ -4,11 +4,11 @@ const path = require('path');
 const adminRoutes = require('./routes/admin');
 const cors = require('cors');
 const session = require('express-session');
-const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const paypalRoutes = require('./routes/paypal');
 const rateLimit = require('express-rate-limit');
+const csrfProtection = require('./middleware/csrf'); // Use our custom CSRF middleware
 
 const app = express();
 
@@ -29,7 +29,7 @@ const productLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// Move these routes BEFORE the CSRF middleware
+// Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -47,7 +47,7 @@ app.use(session({
     name: 'sessionId',
     secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true to ensure session is always created
     cookie: {
         httpOnly: true,
         secure: false, // Temporarily set to false for testing
@@ -56,28 +56,23 @@ app.use(session({
     }
 }));
 
-// Debug middleware to log session and auth status
+// Debug middleware
 app.use((req, res, next) => {
     console.log('Session Debug:', {
         method: req.method,
         path: req.path,
         sessionID: req.sessionID,
         session: req.session,
-        userId: req.session?.userId,
-        isAdmin: req.session?.isAdmin,
         cookies: req.cookies
     });
     next();
 });
 
-// Move public routes BEFORE CSRF middleware
+// Public routes (no CSRF protection needed)
 app.get('/api/products', async (req, res) => {
     try {
         const rows = await getAllProducts();
-        if (!rows) {
-            return res.json([]);
-        }
-        res.json(rows);
+        res.json(rows || []);
     } catch (err) {
         console.error('Database error:', err);
         res.status(500).json({ error: err.message });
@@ -87,20 +82,6 @@ app.get('/api/products', async (req, res) => {
 app.get('/api/categories', async (req, res) => {
     try {
         const rows = await getAllCategories();
-        if (!rows) {
-            return res.json([]);
-        }
-        res.json(rows);
-    } catch (err) {
-        console.error('Database error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Get products by category - move before CSRF
-app.get('/api/categories/:catid/products', async (req, res) => {
-    try {
-        const rows = await db.all('SELECT * FROM products WHERE catid = ?', [req.params.catid]);
         res.json(rows || []);
     } catch (err) {
         console.error('Database error:', err);
@@ -108,20 +89,21 @@ app.get('/api/categories/:catid/products', async (req, res) => {
     }
 });
 
-// Auth status endpoint - move before CSRF
-app.get('/api/auth/status', (req, res) => {
-    res.json({
-        isLoggedIn: !!req.session.userId,
-        isAdmin: !!req.session.isAdmin,
-        user: req.session.user || null
-    });
-});
-
 // CSRF token endpoint
 app.get('/api/csrf-token', (req, res) => {
     try {
-        const token = req.csrfToken();
-        res.json({ csrfToken: token });
+        if (!req.session) {
+            throw new Error('Session not initialized');
+        }
+        
+        // Generate new CSRF token using our custom middleware
+        const csrfToken = res.locals.csrfNonce;
+        
+        if (!csrfToken) {
+            throw new Error('Failed to generate CSRF token');
+        }
+        
+        res.json({ csrfToken });
     } catch (error) {
         console.error('CSRF Token Generation Error:', error);
         res.status(500).json({ 
@@ -131,16 +113,10 @@ app.get('/api/csrf-token', (req, res) => {
     }
 });
 
-// CSRF protection after public routes
-app.use(csrf({ 
-    cookie: {
-        httpOnly: true,
-        secure: false, // Temporarily set to false for testing
-        sameSite: 'lax'
-    }
-}));
+// Apply CSRF protection to all routes after this point
+app.use(csrfProtection);
 
-// Protected routes after CSRF
+// Protected routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/paypal', paypalRoutes);
@@ -150,16 +126,8 @@ app.use((err, req, res, next) => {
     console.error('Global error:', {
         name: err.name,
         message: err.message,
-        stack: err.stack,
-        code: err.code
+        stack: err.stack
     });
-    
-    if (err.code === 'EBADCSRFTOKEN') {
-        return res.status(403).json({
-            error: 'Invalid CSRF token',
-            details: 'CSRF validation failed'
-        });
-    }
     
     res.status(500).json({
         error: 'An unexpected error occurred',
