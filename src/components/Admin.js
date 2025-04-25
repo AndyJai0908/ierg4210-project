@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './Admin.css';
+import { useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
 function Admin() {
     const [categories, setCategories] = useState([]);
@@ -15,64 +18,226 @@ function Admin() {
         name: ''
     });
     const [editingProduct, setEditingProduct] = useState(null);
+    const [csrfToken, setCsrfToken] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [orders, setOrders] = useState([]);
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchCategories();
-        fetchProducts();
+    // Memoize functions to prevent unnecessary re-renders
+    const fetchCsrfToken = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/csrf-token`, {
+                credentials: 'include'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to fetch CSRF token');
+            }
+            const data = await response.json();
+            setCsrfToken(data.csrfToken);
+            return data.csrfToken;
+        } catch (error) {
+            console.error('Error fetching CSRF token:', error);
+            throw error;
+        }
     }, []);
 
-    const fetchCategories = async () => {
+    const checkAuth = useCallback(async () => {
         try {
-            const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/categories');
+            const response = await fetch(`${API_BASE_URL}/auth/status`, {
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok || !data.isLoggedIn || !data.isAdmin) {
+                navigate('/login');
+                return false;
+            }
+            return true;
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            navigate('/login');
+            return false;
+        }
+    }, [navigate]);
+
+    const fetchCategories = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/categories`, {
+                credentials: 'include'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             setCategories(data);
         } catch (error) {
             console.error('Error fetching categories:', error);
+            setError('Failed to load categories');
         }
-    };
+    }, []);
 
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         try {
-            const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/products');
+            const response = await fetch(`${API_BASE_URL}/products`, {
+                credentials: 'include'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             setProducts(data);
         } catch (error) {
             console.error('Error fetching products:', error);
+            setError('Failed to load products');
         }
+    }, []);
+
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
+    const fetchOrders = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/admin/orders`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setOrders(data);
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initialize admin panel
+    useEffect(() => {
+        let mounted = true;
+        let timeoutId;
+
+        const initializeAdmin = async () => {
+            if (!mounted) return;
+            
+            try {
+                setLoading(true);
+                const isAuthenticated = await checkAuth();
+                if (!isAuthenticated || !mounted) return;
+                
+                await fetchCsrfToken();
+                await fetchCategories();
+                await fetchProducts();
+            } catch (err) {
+                if (mounted) {
+                    console.error('Error initializing admin panel:', err);
+                    setError('Failed to initialize admin panel: ' + err.message);
+                }
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        // Initial load
+        initializeAdmin();
+
+        // Refresh data every 30 seconds instead of continuous polling
+        timeoutId = setInterval(initializeAdmin, 30000);
+
+        return () => {
+            mounted = false;
+            if (timeoutId) {
+                clearInterval(timeoutId);
+            }
+        };
+    }, [checkAuth, fetchCsrfToken, fetchCategories, fetchProducts]);
+
+    // Add input validation rules
+    const validateForm = (form) => {
+        const errors = {};
+        
+        // Product name validation
+        if (form.name.length < 3 || form.name.length > 100) {
+            errors.name = 'Product name must be between 3 and 100 characters';
+        }
+        if (!/^[a-zA-Z0-9\s\-_]+$/.test(form.name)) {
+            errors.name = 'Product name can only contain letters, numbers, spaces, hyphens and underscores';
+        }
+
+        // Price validation
+        if (isNaN(form.price) || form.price <= 0) {
+            errors.price = 'Price must be a positive number';
+        }
+
+        // Category validation
+        if (!form.catid) {
+            errors.catid = 'Category is required';
+        }
+
+        return errors;
     };
 
     const handleProductSubmit = async (e) => {
         e.preventDefault();
-        const formData = new FormData();
-        
-        Object.keys(productForm).forEach(key => {
-            if (productForm[key] !== null) {
-                formData.append(key, productForm[key]);
-            }
-        });
+        setError('');
+
+        // Validate form before submission
+        const validationErrors = validateForm(productForm);
+        if (Object.keys(validationErrors).length > 0) {
+            setError(Object.values(validationErrors).join('\n'));
+            return;
+        }
 
         try {
-            const url = editingProduct 
-                ? `http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products/${editingProduct.pid}`
-                : 'http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products';
+            // Get fresh CSRF token
+            const tokenResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
+                credentials: 'include'
+            });
+            if (!tokenResponse.ok) {
+                throw new Error('Failed to fetch CSRF token');
+            }
+            const { csrfToken } = await tokenResponse.json();
             
-            const method = editingProduct ? 'PUT' : 'POST';
+            const formData = new FormData();
+            formData.append('catid', productForm.catid);
+            formData.append('name', productForm.name);
+            formData.append('price', productForm.price);
+            formData.append('description', productForm.description || '');
+            
+            if (productForm.image instanceof File) {
+                formData.append('image', productForm.image);
+            }
+
+            const url = editingProduct 
+                ? `${API_BASE_URL}/admin/products/${editingProduct.pid}`
+                : `${API_BASE_URL}/admin/products`;
             
             const response = await fetch(url, {
-                method: method,
+                method: editingProduct ? 'PUT' : 'POST',
                 body: formData,
                 headers: {
-                    'Accept': 'application/json'
-                }
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include'
             });
-            
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save product');
+                const data = await response.json();
+                if (response.status === 401 || response.status === 403) {
+                    // Try to refresh auth status
+                    const isAuthenticated = await checkAuth();
+                    if (!isAuthenticated) {
+                        throw new Error('Authentication failed');
+                    }
+                    throw new Error(data.error || 'Failed to save product');
+                }
+                throw new Error(data.error || 'Failed to save product');
             }
-            
-            const data = await response.json();
-            alert(editingProduct ? 'Product updated successfully!' : 'Product added successfully!');
+
+            const result = await response.json();
+            console.log('Product saved successfully:', result);
             
             setProductForm({
                 catid: '',
@@ -82,10 +247,15 @@ function Admin() {
                 image: null
             });
             setEditingProduct(null);
-            fetchProducts();
+            await fetchProducts();
+            
+            alert(editingProduct ? 'Product updated successfully!' : 'Product added successfully!');
         } catch (error) {
             console.error('Error saving product:', error);
-            alert(error.message);
+            setError(error.message);
+            if (error.message === 'Authentication failed') {
+                navigate('/login');
+            }
         }
     };
 
@@ -104,178 +274,280 @@ function Admin() {
         if (!window.confirm('Are you sure you want to delete this product?')) return;
 
         try {
-            const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/products/${pid}`, {
+            // Get fresh CSRF token
+            const tokenResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
+                credentials: 'include'
+            });
+            if (!tokenResponse.ok) {
+                throw new Error('Failed to fetch CSRF token');
+            }
+            const { csrfToken } = await tokenResponse.json();
+            
+            const response = await fetch(`${API_BASE_URL}/admin/products/${pid}`, {
                 method: 'DELETE',
                 headers: {
-                    'Accept': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include'
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to delete product');
+                const data = await response.json();
+                if (response.status === 401 || response.status === 403) {
+                    // Try to refresh auth status
+                    const isAuthenticated = await checkAuth();
+                    if (!isAuthenticated) {
+                        throw new Error('Authentication failed');
+                    }
+                    throw new Error(data.error || 'Failed to delete product');
+                }
+                throw new Error(data.error || 'Failed to delete product');
             }
 
+            await fetchProducts();
             alert('Product deleted successfully!');
-            fetchProducts();
         } catch (error) {
             console.error('Error deleting product:', error);
-            alert(error.message);
+            setError(error.message);
+            if (error.message === 'Authentication failed') {
+                navigate('/login');
+            }
         }
     };
 
     const handleCategorySubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://s21.ierg4210.ie.cuhk.edu.hk/api/admin/categories', {
+            const response = await fetch(`${API_BASE_URL}/admin/categories`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': csrfToken
                 },
+                credentials: 'include',
                 body: JSON.stringify(categoryForm)
             });
+            
+            if (response.status === 401 || response.status === 403) {
+                // Authentication/Authorization failed
+                navigate('/login');
+                return;
+            }
             
             if (!response.ok) {
                 throw new Error(`Failed to add category: ${response.statusText}`);
             }
             
-            const data = await response.json();
             alert('Category added successfully!');
             setCategoryForm({ name: '' });
             fetchCategories();
         } catch (error) {
             console.error('Error adding category:', error);
-            alert('Failed to add category: ' + error.message);
+            setError('Failed to add category: ' + error.message);
         }
     };
 
     return (
-        <div className="admin-panel">
-            <h1>Admin Panel</h1>
-            
-            <section className="product-form">
-                <h2>{editingProduct ? 'Edit Product' : 'Add Product'}</h2>
-                <form onSubmit={handleProductSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="category">Category:</label>
-                        <select 
-                            id="category"
-                            value={productForm.catid}
-                            onChange={(e) => setProductForm({...productForm, catid: e.target.value})}
-                            required
-                        >
-                            <option value="">Select Category</option>
-                            {categories.map(cat => (
-                                <option key={cat.catid} value={cat.catid}>
-                                    {cat.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+        <div className="admin-container">
+            {error && <div className="error-message">{error}</div>}
+            <div className="admin-panel">
+                <h1>Admin Panel</h1>
+                
+                {loading ? (
+                    <div className="loading-message">Loading...</div>
+                ) : (
+                    <>
+                        <section className="product-form">
+                            <h2>{editingProduct ? 'Edit Product' : 'Add Product'}</h2>
+                            <form onSubmit={handleProductSubmit}>
+                                <div className="form-group">
+                                    <label htmlFor="category">Category:</label>
+                                    <select 
+                                        id="category"
+                                        value={productForm.catid}
+                                        onChange={(e) => setProductForm({...productForm, catid: e.target.value})}
+                                        required
+                                    >
+                                        <option value="">Select Category</option>
+                                        {categories.map(cat => (
+                                            <option key={cat.catid} value={cat.catid}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                    <div className="form-group">
-                        <label htmlFor="name">Product Name:</label>
-                        <input
-                            type="text"
-                            id="name"
-                            value={productForm.name}
-                            onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                            required
-                        />
-                    </div>
+                                <div className="form-group">
+                                    <label htmlFor="name">Product Name:</label>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        value={productForm.name}
+                                        onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                                        required
+                                    />
+                                </div>
 
-                    <div className="form-group">
-                        <label htmlFor="price">Price:</label>
-                        <input
-                            type="number"
-                            id="price"
-                            value={productForm.price}
-                            onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                            required
-                        />
-                    </div>
+                                <div className="form-group">
+                                    <label htmlFor="price">Price:</label>
+                                    <input
+                                        type="number"
+                                        id="price"
+                                        value={productForm.price}
+                                        onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                                        required
+                                    />
+                                </div>
 
-                    <div className="form-group">
-                        <label htmlFor="description">Description:</label>
-                        <textarea
-                            id="description"
-                            value={productForm.description}
-                            onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                        />
-                    </div>
+                                <div className="form-group">
+                                    <label htmlFor="description">Description:</label>
+                                    <textarea
+                                        id="description"
+                                        value={productForm.description}
+                                        onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                                    />
+                                </div>
 
-                    <div className="form-group">
-                        <label htmlFor="image">Product Image:</label>
-                        <input
-                            type="file"
-                            id="image"
-                            accept="image/jpeg,image/png,image/gif"
-                            onChange={(e) => setProductForm({...productForm, image: e.target.files[0]})}
-                        />
-                    </div>
+                                <div className="form-group">
+                                    <label htmlFor="image">Product Image:</label>
+                                    <input
+                                        type="file"
+                                        id="image"
+                                        accept="image/jpeg,image/png,image/gif"
+                                        onChange={(e) => setProductForm({...productForm, image: e.target.files[0]})}
+                                    />
+                                </div>
 
-                    <button type="submit">{editingProduct ? 'Update Product' : 'Add Product'}</button>
-                    {editingProduct && (
-                        <button type="button" onClick={() => {
-                            setEditingProduct(null);
-                            setProductForm({
-                                catid: '',
-                                name: '',
-                                price: '',
-                                description: '',
-                                image: null
-                            });
-                        }}>Cancel Edit</button>
-                    )}
-                </form>
-            </section>
+                                <button type="submit" disabled={loading}>
+                                    {editingProduct ? 'Update Product' : 'Add Product'}
+                                </button>
+                                {editingProduct && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => {
+                                            setEditingProduct(null);
+                                            setProductForm({
+                                                catid: '',
+                                                name: '',
+                                                price: '',
+                                                description: '',
+                                                image: null
+                                            });
+                                        }}
+                                        disabled={loading}
+                                    >
+                                        Cancel Edit
+                                    </button>
+                                )}
+                            </form>
+                        </section>
 
-            <section className="products-list">
-                <h2>Products</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {products.map(product => (
-                            <tr key={product.pid}>
-                                <td>{product.pid}</td>
-                                <td>{product.name}</td>
-                                <td>{categories.find(c => c.catid === product.catid)?.name}</td>
-                                <td>HKD ${product.price}</td>
-                                <td>
-                                    <button onClick={() => handleEdit(product)}>Edit</button>
-                                    <button onClick={() => handleDelete(product.pid)}>Delete</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </section>
+                        <section className="products-list">
+                            <h2>Products</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Price</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {products.map(product => (
+                                        <tr key={product.pid}>
+                                            <td>{product.pid}</td>
+                                            <td>{product.name}</td>
+                                            <td>{categories.find(c => c.catid === product.catid)?.name}</td>
+                                            <td>HKD ${product.price}</td>
+                                            <td>
+                                                <button 
+                                                    onClick={() => handleEdit(product)}
+                                                    disabled={loading}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(product.pid)}
+                                                    disabled={loading}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </section>
 
-            <section className="category-form">
-                <h2>Add Category</h2>
-                <form onSubmit={handleCategorySubmit}>
-                    <div className="form-group">
-                        <label htmlFor="categoryName">Category Name:</label>
-                        <input
-                            type="text"
-                            id="categoryName"
-                            value={categoryForm.name}
-                            onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
-                            required
-                        />
-                    </div>
-                    <button type="submit">Add Category</button>
-                </form>
-            </section>
+                        <section className="category-form">
+                            <h2>Add Category</h2>
+                            <form onSubmit={handleCategorySubmit}>
+                                <div className="form-group">
+                                    <label htmlFor="categoryName">Category Name:</label>
+                                    <input
+                                        type="text"
+                                        id="categoryName"
+                                        value={categoryForm.name}
+                                        onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <button type="submit" disabled={loading}>Add Category</button>
+                            </form>
+                        </section>
+
+                        <div className="orders-section">
+                            <h2>Orders</h2>
+                            {loading ? (
+                                <p>Loading orders...</p>
+                            ) : (
+                                <div className="orders-table-container">
+                                    <table className="orders-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Order ID</th>
+                                                <th>Username</th>
+                                                <th>Products</th>
+                                                <th>Total Amount</th>
+                                                <th>Status</th>
+                                                <th>Created At</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {orders.map((order) => (
+                                                <tr key={order.orderId}>
+                                                    <td>{order.orderId}</td>
+                                                    <td>{order.username}</td>
+                                                    <td>
+                                                        <ul className="order-products">
+                                                            {order.products.map((product, index) => (
+                                                                <li key={index}>
+                                                                    {product} - {order.currency} ${order.prices[index].toFixed(2)}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </td>
+                                                    <td>{order.currency} ${order.totalAmount.toFixed(2)}</td>
+                                                    <td>
+                                                        <span className={`status-badge ${order.status.toLowerCase()}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </td>
+                                                    <td>{new Date(order.createdAt).toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }

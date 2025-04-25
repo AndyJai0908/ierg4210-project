@@ -9,6 +9,11 @@ export class CartItem {
     getTotal() {
         return this.price * this.quantity;
     }
+
+    update(name, price) {
+        this.name = name;
+        this.price = price;
+    }
 }
 
 export class ShoppingCart {
@@ -31,6 +36,9 @@ export class ShoppingCart {
                     item.price
                 ));
             });
+
+            // Refresh all items with latest data
+            this.refreshAllItems();
         }
     }
 
@@ -44,27 +52,51 @@ export class ShoppingCart {
         localStorage.setItem('shoppingCart', JSON.stringify(cartData));
     }
 
-    async addItem(pid, quantity = 1) {
-        if (this.items.has(pid)) {
-            const item = this.items.get(pid);
-            item.quantity += quantity;
-        } else {
+    async refreshAllItems() {
+        const promises = Array.from(this.items.values()).map(async (item) => {
             try {
-                const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/products/${pid}`);
+                const response = await fetch(`http://localhost:5000/api/products/${item.pid}`);
+                if (!response.ok) {
+                    throw new Error('Product not found');
+                }
                 const product = await response.json();
+                item.update(product.name, product.price);
+            } catch (error) {
+                console.error(`Error refreshing product ${item.pid}:`, error);
+            }
+        });
+
+        await Promise.all(promises);
+        this.saveToStorage();
+    }
+
+    async addItem(pid, quantity = 1) {
+        try {
+            const response = await fetch(`http://localhost:5000/api/products/${pid}`);
+            if (!response.ok) {
+                throw new Error('Product not found');
+            }
+            const product = await response.json();
+            
+            if (this.items.has(pid)) {
+                const item = this.items.get(pid);
+                item.update(product.name, product.price);
+                item.quantity += quantity;
+            } else {
                 this.items.set(pid, new CartItem(
                     pid, 
                     quantity, 
                     product.name, 
                     product.price
                 ));
-            } catch (error) {
-                console.error('Error fetching product details:', error);
-                return;
             }
+            
+            this.saveToStorage();
+            return this.items.get(pid);
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+            return null;
         }
-        this.saveToStorage();
-        return this.items.get(pid);
     }
 
     updateQuantity(pid, quantity) {

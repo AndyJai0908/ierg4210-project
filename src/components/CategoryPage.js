@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
+
 function CategoryPage({ onProductClick, onAddToCart }) {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -12,10 +14,12 @@ function CategoryPage({ onProductClick, onAddToCart }) {
             try {
                 setLoading(true);
                 const url = !categoryId || categoryId === 'all'
-                    ? 'http://s21.ierg4210.ie.cuhk.edu.hk/api/products'
-                    : `http://s21.ierg4210.ie.cuhk.edu.hk/api/categories/${categoryId}/products`;
+                    ? `${API_BASE_URL}/products`
+                    : `${API_BASE_URL}/categories/${categoryId}/products`;
                 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
                 const data = await response.json();
                 console.log('Product data:', data);
                 setProducts(data);
@@ -46,7 +50,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                             }}
                         >
                             <img 
-                                src={`http://s21.ierg4210.ie.cuhk.edu.hk/api/images/products/${product.thumbnail}`}
+                                src={`${API_BASE_URL}/images/products/${product.thumbnail || product.image}`}
                                 alt={product.name}
                                 className="product-thumbnail"
                                 onError={(e) => {

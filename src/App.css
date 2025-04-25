@@ -17,6 +17,7 @@
   flex-direction: column;
   background-color: var(--background-light);
   color: var(--text-primary);
+  width: 100%;
 }
 
 .site-header {
@@ -196,6 +197,7 @@
   padding: 2rem;
   background-color: white;
   border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .categories-sidebar h2 {
@@ -224,15 +226,16 @@
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
   padding: 2rem;
   width: 100%;
+  max-width: 1400px;
 }
 
 #main-content {
   flex: 1;
-  width: calc(100% - 250px); 
+  min-width: 0;
   padding: 0;
   background-color: var(--background-light);
 }
@@ -260,6 +263,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 1rem;
 }
 
 .product-card figure {
@@ -274,7 +278,6 @@
   height: 280px;
   object-fit: contain;
   background-color: white;
-  padding: 1rem;
 }
 
 .product-card figcaption {
@@ -313,6 +316,7 @@
   font-weight: 500;
   transition: background-color 0.2s ease;
   margin-top: auto;
+  text-align: center;
 }
 
 .product-card .add-to-cart:hover {
@@ -439,4 +443,313 @@ footer {
   .nav-menu {
     padding: 0 1rem;
   }
+}
+
+.user-info {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  color: #333;
+}
+
+.navbar {
+    display: flex;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    gap: 1rem;
+}
+
+.navbar a {
+    text-decoration: none;
+    color: #007bff;
+    padding: 0.5rem 1rem;
+}
+
+.navbar a:hover {
+    color: #0056b3;
+}
+
+.user-info {
+    margin-left: auto;
+}
+
+/* Add these styles after the existing nav-menu styles */
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.nav-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  background-color: var(--background-light);
+  color: var(--primary-color);
+}
+
+.login-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.login-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.logout-button {
+  background-color: #dc3545;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
+}
+
+.user-info {
+  color: var(--text-secondary);
+  margin-right: 1rem;
+}
+
+/* Payment Result Pages */
+.payment-result {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 30px;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.payment-result.success {
+    background-color: #f0fff0;
+    border: 1px solid #90ee90;
+}
+
+.payment-result.cancelled {
+    background-color: #fff5f5;
+    border: 1px solid #ffb6b6;
+}
+
+.payment-result h2 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.payment-result p {
+    margin-bottom: 30px;
+    color: var(--text-secondary);
+}
+
+.payment-result button {
+    padding: 12px 24px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+}
+
+.payment-result button:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Member Portal Styles */
+.member-portal {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.member-portal h2 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.orders-list {
+    width: 100%;
+}
+
+.orders-list table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.orders-list th,
+.orders-list td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.orders-list th {
+    background-color: var(--background-light);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.order-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.order-status.completed {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.order-status.processing {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.order-status.pending {
+    background-color: #fef9c3;
+    color: #854d0e;
+}
+
+.order-status.cancelled {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.order-products {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.order-products li {
+    margin-bottom: 0.25rem;
+}
+
+.member-portal-button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+    margin-left: 1rem;
+}
+
+.member-portal-button:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Member Portal Button */
+.member-portal-button {
+  padding: 8px 16px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  margin: 0 8px;
+  transition: background-color 0.2s;
+}
+
+.member-portal-button:hover {
+  background-color: #357abd;
+}
+
+/* Member Portal Page */
+.member-portal {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.member-portal h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.orders-list {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.orders-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-list th,
+.orders-list td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.orders-list th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.orders-list tr:hover {
+  background-color: #f8f9fa;
+}
+
+.order-products {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.order-products li {
+  margin-bottom: 4px;
+}
+
+.order-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.order-status.processing {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.order-status.completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.order-status.cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
 }

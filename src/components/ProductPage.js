@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import DOMPurify from 'dompurify';
+
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
 function ProductPage({ onAddToCart }) {
   const [product, setProduct] = useState(null);
@@ -11,26 +14,37 @@ function ProductPage({ onAddToCart }) {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://s21.ierg4210.ie.cuhk.edu.hk/api/products/${productId}`);
+        setError(null); // Clear any previous errors
+        
+        const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+          credentials: 'include'
+        });
+        
         if (!response.ok) {
-          throw new Error('Product not found');
+          if (response.status === 404) {
+            throw new Error('Product not found');
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
         const data = await response.json();
         console.log('Fetched product:', data); // Debug log
         setProduct(data);
       } catch (error) {
-        setError('Error fetching product details');
-        console.error('Error:', error);
+        console.error('Error fetching product:', error);
+        setError(error.message || 'Error fetching product details');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProduct();
+    if (productId) {
+      fetchProduct();
+    }
   }, [productId]);
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
+  if (error) return <div className="error-message">{error}</div>;
   if (!product) return <div>Product not found</div>;
 
   return (
@@ -39,18 +53,26 @@ function ProductPage({ onAddToCart }) {
         <div className="product-image">
           <img 
             src={product.image 
-              ? `http://s21.ierg4210.ie.cuhk.edu.hk/images/products/${product.image}`
+              ? `${API_BASE_URL}/images/products/${product.image}`
               : '/images/placeholder.jpg'
             } 
             alt={product.name} 
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/images/placeholder.jpg';
+            }}
           />
         </div>
         <div className="product-info">
-          <h1>{product.name}</h1>
-          <p className="price">HKD ${product.price}</p>
+          <h1>{DOMPurify.sanitize(product.name)}</h1>
+          <p className="price">HKD ${parseFloat(product.price).toFixed(2)}</p>
           <div className="description">
             <h2>Description</h2>
-            <p>{product.description}</p>
+            <div 
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(product.description)
+              }}
+            />
           </div>
           <button 
             className="add-to-cart" 

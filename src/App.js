@@ -1,15 +1,67 @@
 // IERG4210 Project 
 // LI WAI Andy SID:1155176724
 
-import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import './App.css';
 import { useState, useEffect } from 'react';
 import CategoryPage from './components/CategoryPage';
 import ProductPage from './components/ProductPage';
 import Admin from './components/Admin';
 import { ShoppingCart } from './utils/ShoppingCart';
+import Login from './components/Login';
+import ChangePassword from './components/ChangePassword';
+import Cart from './components/Cart';
+import MemberPortal from './components/MemberPortal';
 
-const API_BASE_URL = 'http://s21.ierg4210.ie.cuhk.edu.hk/api';
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
+
+// Payment result components
+const PaymentSuccess = () => {
+  const navigate = useNavigate();
+  const location = window.location;
+  
+  useEffect(() => {
+    const updateOrderStatus = async () => {
+      const params = new URLSearchParams(location.search);
+      const invoice = params.get('invoice');
+      
+      if (invoice) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/paypal/success?invoice=${invoice}`, {
+            credentials: 'include'
+          });
+          if (!response.ok) {
+            console.error('Failed to update order status');
+          }
+        } catch (error) {
+          console.error('Error updating order status:', error);
+        }
+      }
+    };
+    
+    updateOrderStatus();
+  }, [location]);
+  
+  return (
+    <div className="payment-result success">
+      <h2>Payment Successful!</h2>
+      <p>Thank you for your purchase.</p>
+      <button onClick={() => navigate('/')}>Continue Shopping</button>
+    </div>
+  );
+};
+
+const PaymentCancelled = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="payment-result cancelled">
+      <h2>Payment Cancelled</h2>
+      <p>Your payment was cancelled. No charges were made.</p>
+      <button onClick={() => navigate('/')}>Return to Shop</button>
+    </div>
+  );
+};
 
 function AppContent() {
   const [categories, setCategories] = useState({});
@@ -19,26 +71,47 @@ function AppContent() {
   const params = useParams();
   const [currentProduct, setCurrentProduct] = useState(null);
   const location = window.location.pathname;
+  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [products, setProducts] = useState([]);
 
-  // Fetch categories from API
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/status`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      setIsLoggedIn(data.isLoggedIn);
+      setIsAdmin(data.isAdmin);
+      setUser(data.user);
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setIsLoggedIn(false);
+      setIsAdmin(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/categories`);
-        const data = await response.json();
-        const categoryObj = data.reduce((acc, cat) => {
-          acc[cat.catid] = {
-            name: cat.name,
-            products: []
-          };
-          return acc;
-        }, {});
-        setCategories(categoryObj);
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/products`, { credentials: 'include' }),
+          fetch(`${API_BASE_URL}/categories`, { credentials: 'include' })
+        ]);
+
+        const products = await productsRes.json();
+        const categories = await categoriesRes.json();
+
+        setProducts(products);
+        setCategories(categories);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error fetching data:', error);
       }
     };
-    fetchCategories();
+
+    fetchData();
+    checkAuthStatus();
   }, []);
 
   // Fetch product details when needed for breadcrumb
@@ -62,7 +135,7 @@ function AppContent() {
 
   // Update cart display whenever it changes
   useEffect(() => {
-    const updateCartDisplay = async () => {
+    const updateCartDisplay = () => {
       const items = cart.getItems();
       setCartItems(items);
     };
@@ -82,9 +155,13 @@ function AppContent() {
     setCartItems(cart.getItems());
   };
 
-  const handleQuantityChange = async (pid, newQuantity) => {
-    if (newQuantity < 0) return;
-    cart.updateQuantity(pid, newQuantity);
+  const handleUpdateQuantity = (pid, quantity) => {
+    cart.updateQuantity(pid, quantity);
+    setCartItems(cart.getItems());
+  };
+
+  const handleRemoveItem = (pid) => {
+    cart.removeItem(pid);
     setCartItems(cart.getItems());
   };
 
@@ -145,50 +222,55 @@ function AppContent() {
     );
   };
 
+  // Protected route component
+  const ProtectedRoute = ({ children, adminOnly = false }) => {
+    if (!user) {
+      return <Navigate to="/login" />;
+    }
+    if (adminOnly && !user.isAdmin) {
+      return <Navigate to="/" />;
+    }
+    return children;
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setUser(null);
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="App">
       <header className="site-header">
         <nav className="nav-menu" aria-label="Main navigation">
           {renderBreadcrumb()}
           
-          <aside className="shopping-cart-icon" aria-label="Shopping cart">
-            🛒
-            <div className="shopping-list" role="dialog" aria-label="Shopping cart contents">
-              <h3>Shopping List (Total: HKD ${cart.getTotal()})</h3>
-              {cartItems.length > 0 ? (
-                <>
-                  <ul>
-                    {cartItems.map(item => (
-                      <li key={item.pid}>
-                        <article className="cart-item">
-                          <h4>{item.name}</h4>
-                          <div className="quantity-controls">
-                            <button 
-                              onClick={() => handleQuantityChange(item.pid, item.quantity - 1)}
-                              aria-label={`Decrease quantity of ${item.name}`}
-                            >
-                              -
-                            </button>
-                            <span>{item.quantity}</span>
-                            <button 
-                              onClick={() => handleQuantityChange(item.pid, item.quantity + 1)}
-                              aria-label={`Increase quantity of ${item.name}`}
-                            >
-                              +
-                            </button>
-                          </div>
-                          <p className="price">HKD ${item.getTotal()}</p>
-                        </article>
-                      </li>
-                    ))}
-                  </ul>
-                  <button className="checkout-btn" type="button">Checkout</button>
-                </>
-              ) : (
-                <p>Your cart is empty</p>
-              )}
-            </div>
-          </aside>
+          <div className="nav-auth">
+            {user ? (
+              <>
+                <span className="user-info">Welcome, {user.email}</span>
+                {user.isAdmin && <Link to="/admin" className="nav-link">Admin</Link>}
+                <Link to="/member-portal" className="member-portal-button">My Orders</Link>
+                <Link to="/change-password" className="nav-link">Change Password</Link>
+                <button onClick={handleLogout} className="logout-button">Logout</button>
+              </>
+            ) : (
+              <>
+                <Link to="/member-portal" className="member-portal-button">Check Orders</Link>
+                <Link to="/login" className="login-button">Login</Link>
+              </>
+            )}
+          </div>
         </nav>
       </header>
 
@@ -219,9 +301,22 @@ function AppContent() {
         <main id="main-content">
           <Routes>
             <Route path="/" element={<CategoryPage category="all" onProductClick={handleProductClick} onAddToCart={handleAddToCart} />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={
+              <ProtectedRoute adminOnly={true}>
+                <Admin />
+              </ProtectedRoute>
+            } />
+            <Route path="/member-portal" element={<MemberPortal />} />
             <Route path="/category/:categoryId" element={<CategoryPage onProductClick={handleProductClick} onAddToCart={handleAddToCart} />} />
             <Route path="/category/:categoryId/product/:productId" element={<ProductPage onAddToCart={handleAddToCart} />} />
+            <Route path="/login" element={<Login setUser={setUser} />} />
+            <Route path="/change-password" element={
+              <ProtectedRoute>
+                <ChangePassword />
+              </ProtectedRoute>
+            } />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-cancelled" element={<PaymentCancelled />} />
           </Routes>
         </main>
       </div>
@@ -233,15 +328,19 @@ function AppContent() {
           <p>SID:1155176724</p>
         </section>
       </footer>
+
+      <Cart 
+        items={cartItems}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+      />
     </div>
   );
 }
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <AppContent />
   );
 }
 

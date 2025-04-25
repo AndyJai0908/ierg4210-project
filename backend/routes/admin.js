@@ -3,8 +3,85 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const sharp = require('sharp');
-const db = require('../database/db');
+const { db } = require('../database/db');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
+const xss = require('xss');
+const { isAuthenticated, isAdmin } = require('../middleware/auth');
+const crypto = require('crypto');
+const { createOrder, getProduct, updateProduct, addProduct } = require('../database/db');
+const paypal = require('../config/paypal');
+
+// Debug middleware for admin routes
+router.use((req, res, next) => {
+    console.log('Admin route accessed:', {
+        path: req.path,
+        method: req.method,
+        isAuthenticated: !!req.session?.userId,
+        isAdmin: !!req.session?.isAdmin
+    });
+    next();
+});
+
+// Protect all admin routes
+router.use(isAuthenticated, isAdmin);
+
+// Test route
+router.get('/test', (req, res) => {
+    res.json({ message: 'Admin route is working' });
+});
+
+// Get all orders
+router.get('/orders', async (req, res) => {
+    console.log('Fetching orders...');
+    try {
+        const sql = `
+            SELECT o.*, 
+                   GROUP_CONCAT(p.name || ' (x' || oi.quantity || ')') as products,
+                   GROUP_CONCAT(oi.price) as prices
+            FROM orders o
+            LEFT JOIN order_items oi ON o.order_id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.pid
+            GROUP BY o.order_id
+            ORDER BY o.created_at DESC
+        `;
+        
+        const rows = await new Promise((resolve, reject) => {
+            db.all(sql, [], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+        
+        console.log('Orders fetched:', rows);
+        
+        if (!rows || !Array.isArray(rows)) {
+            throw new Error('Invalid database response');
+        }
+        
+        // Format the response
+        const orders = rows.map(row => ({
+            orderId: row.order_id,
+            username: row.username || 'guest',
+            currency: row.currency || 'HKD',
+            merchantEmail: row.merchant_email,
+            totalAmount: row.total_amount || 0,
+            status: row.status || 'pending',
+            createdAt: row.created_at,
+            products: row.products ? row.products.split(',') : [],
+            prices: row.prices ? row.prices.split(',').map(Number) : []
+        }));
+        
+        res.json(orders);
+    } catch (error) {
+        console.error('Error in orders route:', error);
+        res.status(500).json({ 
+            error: 'Internal server error', 
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
 
 // Helper function to sanitize filename
 const sanitizeFilename = (filename) => {
@@ -74,16 +151,48 @@ const processImage = async (inputPath, outputPath, width, height) => {
     }
 };
 
-router.post('/products', upload.single('image'), async (req, res) => {
-    let tempFilePath = null;
+// Validation middleware
+const validateProduct = [
+    body('name')
+        .trim()
+        .isLength({ min: 3, max: 100 })
+        .matches(/^[a-zA-Z0-9\s\-_]+$/)
+        .escape(),
+    body('price')
+        .isFloat({ min: 0 })
+        .toFloat(),
+    body('catid')
+        .isInt()
+        .toInt(),
+    body('description')
+        .optional()
+        .trim()
+        .escape()
+];
+
+// Sanitize and validate product submission
+router.post('/products', upload.single('image'), validateProduct, async (req, res) => {
     try {
-        const { catid, name, price, description } = req.body;
+        // Check validation results
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        // Sanitize inputs
+        const sanitizedData = {
+            name: xss(req.body.name),
+            price: parseFloat(req.body.price),
+            catid: parseInt(req.body.catid),
+            description: req.body.description ? xss(req.body.description) : ''
+        };
+
         let mainImage = null;
         let thumbnailImage = null;
 
         if (req.file) {
-            tempFilePath = req.file.path;
-            const productName = sanitizeFilename(name);
+            let tempFilePath = req.file.path;
+            const productName = sanitizeFilename(sanitizedData.name);
             const timestamp = Date.now();
             mainImage = `${productName}-${timestamp}${path.extname(req.file.originalname)}`;
             thumbnailImage = `${productName}-${timestamp}-thumb${path.extname(req.file.originalname)}`;
@@ -108,50 +217,54 @@ router.post('/products', upload.single('image'), async (req, res) => {
         }
 
         // Input validation
-        if (!catid || !name || !price) {
+        if (!sanitizedData.catid || !sanitizedData.name || !sanitizedData.price) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const sql = `INSERT INTO products (catid, name, price, description, image, thumbnail) 
-                     VALUES (?, ?, ?, ?, ?, ?)`;
-        
-        db.run(sql, [catid, name, price, description, mainImage, thumbnailImage], function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            res.json({ 
-                id: this.lastID,
-                message: 'Product added successfully',
-                image: mainImage,
-                thumbnail: thumbnailImage
-            });
+        // Use the addProduct function from db.js
+        const productId = await addProduct({
+            ...sanitizedData,
+            image: mainImage,
+            thumbnail: thumbnailImage
+        });
+
+        res.json({ 
+            id: productId,
+            message: 'Product added successfully',
+            image: mainImage,
+            thumbnail: thumbnailImage
         });
     } catch (error) {
         console.error('Error in product upload:', error);
-        if (tempFilePath) {
-            try {
-                await fs.unlink(tempFilePath);
-            } catch (deleteError) {
-                console.warn('Could not delete temp file:', deleteError.message);
-            }
-        }
         res.status(500).json({ error: error.message });
     }
 });
 
 // Update product
-router.put('/products/:pid', upload.single('image'), async (req, res) => {
+router.put('/products/:pid', upload.single('image'), validateProduct, async (req, res) => {
     let tempFilePath = null;
     try {
-        const { catid, name, price, description } = req.body;
+        // Validate request
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        // Sanitize inputs
+        const sanitizedData = {
+            catid: parseInt(req.body.catid),
+            name: xss(req.body.name),
+            price: parseFloat(req.body.price),
+            description: req.body.description ? xss(req.body.description) : ''
+        };
+
         let mainImage = null;
         let thumbnailImage = null;
 
         if (req.file) {
             // Process new image
             tempFilePath = req.file.path;
-            const productName = sanitizeFilename(name);
+            const productName = sanitizeFilename(sanitizedData.name);
             const timestamp = Date.now();
             mainImage = `${productName}-${timestamp}${path.extname(req.file.originalname)}`;
             thumbnailImage = `${productName}-${timestamp}-thumb${path.extname(req.file.originalname)}`;
@@ -165,13 +278,7 @@ router.put('/products/:pid', upload.single('image'), async (req, res) => {
             ]);
 
             // Delete old images
-            const oldProduct = await new Promise((resolve, reject) => {
-                db.get('SELECT image, thumbnail FROM products WHERE pid = ?', [req.params.pid], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
-
+            const oldProduct = await getProduct(req.params.pid);
             if (oldProduct) {
                 if (oldProduct.image) {
                     try {
@@ -199,28 +306,21 @@ router.put('/products/:pid', upload.single('image'), async (req, res) => {
             }, 100);
         }
 
-        // Update database
-        const sql = req.file
-            ? `UPDATE products 
-               SET catid = ?, name = ?, price = ?, description = ?, image = ?, thumbnail = ?
-               WHERE pid = ?`
-            : `UPDATE products 
-               SET catid = ?, name = ?, price = ?, description = ?
-               WHERE pid = ?`;
+        // Update database with sanitized data
+        await updateProduct(req.params.pid, {
+            ...sanitizedData,
+            image: mainImage || undefined,
+            thumbnail: thumbnailImage || undefined
+        });
 
-        const params = req.file
-            ? [catid, name, price, description, mainImage, thumbnailImage, req.params.pid]
-            : [catid, name, price, description, req.params.pid];
-
-        db.run(sql, params, function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
+        res.json({ 
+            message: 'Product updated successfully',
+            product: {
+                ...sanitizedData,
+                pid: req.params.pid,
+                image: mainImage,
+                thumbnail: thumbnailImage
             }
-            res.json({ 
-                changes: this.changes,
-                message: 'Product updated successfully'
-            });
         });
     } catch (error) {
         console.error('Error in product update:', error);
@@ -239,41 +339,37 @@ router.put('/products/:pid', upload.single('image'), async (req, res) => {
 router.delete('/products/:pid', async (req, res) => {
     try {
         // Get product info for deleting image
-        const product = await new Promise((resolve, reject) => {
-            db.get('SELECT image, thumbnail FROM products WHERE pid = ?', [req.params.pid], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        const product = await getProduct(req.params.pid);
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
 
         // Delete images if they exist
-        if (product) {
-            if (product.image) {
-                try {
-                    await fs.unlink(path.join('./public/images/products', product.image));
-                } catch (error) {
-                    console.warn('Could not delete main image:', error.message);
-                }
+        if (product.image) {
+            try {
+                await fs.unlink(path.join('./public/images/products', product.image));
+            } catch (error) {
+                console.warn('Could not delete main image:', error.message);
             }
-            if (product.thumbnail) {
-                try {
-                    await fs.unlink(path.join('./public/images/products', product.thumbnail));
-                } catch (error) {
-                    console.warn('Could not delete thumbnail:', error.message);
-                }
+        }
+        if (product.thumbnail) {
+            try {
+                await fs.unlink(path.join('./public/images/products', product.thumbnail));
+            } catch (error) {
+                console.warn('Could not delete thumbnail:', error.message);
             }
         }
 
-        // Delete from database
-        db.run('DELETE FROM products WHERE pid = ?', [req.params.pid], function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            res.json({ 
-                changes: this.changes,
-                message: 'Product deleted successfully'
+        // Delete from database using a new function in db.js
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM products WHERE pid = ?', [req.params.pid], function(err) {
+                if (err) reject(err);
+                else resolve(this.changes);
             });
+        });
+
+        res.json({ 
+            message: 'Product deleted successfully'
         });
     } catch (error) {
         console.error('Error deleting product:', error);
