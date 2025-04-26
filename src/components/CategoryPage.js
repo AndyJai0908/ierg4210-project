@@ -15,7 +15,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                 setLoading(true);
                 const url = !categoryId || categoryId === 'all'
                     ? `${API_BASE_URL}/products`
-                    : `${API_BASE_URL}/categories/${categoryId+1}/products`;
+                    : `${API_BASE_URL}/categories/${categoryId}/products`;
                 
                 const response = await fetch(url, {
                     credentials: 'include'
