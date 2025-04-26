@@ -20,6 +20,11 @@ const Cart = ({ items, onUpdateQuantity, onRemoveItem }) => {
         console.error('PayPal Checkout Error:', error);
     };
 
+    // Handler for clearing cart
+    const handleClearCart = () => {
+        items.forEach(item => onRemoveItem(item.pid));
+    };
+
     return (
         <div className="cart-container">
             <div className="cart-wrapper">
@@ -72,7 +77,7 @@ const Cart = ({ items, onUpdateQuantity, onRemoveItem }) => {
                                     cartItems={items}
                                     onSuccess={handleCheckoutSuccess}
                                     onError={handleCheckoutError}
-                                    onClearCart={() => items.forEach(item => onRemoveItem(item.pid))}
+                                    onClearCart={handleClearCart}
                                 />
                             </div>
                         </>
