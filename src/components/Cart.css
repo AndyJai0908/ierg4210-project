@@ -162,6 +162,16 @@
     display: block;
 }
 
+/* Create a safe hover gap between icon and dropdown */
+.cart-dropdown::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    width: 100%;
+    height: 10px;
+    left: 0;
+}
+
 .empty-cart-message {
     text-align: center;
     color: var(--text-secondary);
