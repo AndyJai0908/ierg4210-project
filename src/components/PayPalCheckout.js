@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
-function PayPalCheckout({ cartItems, onSuccess, onError, onClearCart }) {
+function PayPalCheckout({ items, onSuccess, onError }) {
     const [loading, setLoading] = useState(false);
     const [csrfToken, setCsrfToken] = useState('');
     const [error, setError] = useState(null);
@@ -31,9 +31,6 @@ function PayPalCheckout({ cartItems, onSuccess, onError, onClearCart }) {
         setError(null);
 
         try {
-            // Create an array if cartItems is undefined or null
-            const items = cartItems || [];
-            
             // create an order on server
             const response = await fetch(`${API_BASE_URL}/paypal/create-order`, {
                 method: 'POST',
@@ -87,8 +84,8 @@ function PayPalCheckout({ cartItems, onSuccess, onError, onClearCart }) {
         }
     };
 
-    // Calculate total amount safely, handling the case when cartItems is undefined
-    const total = cartItems ? cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
+    // Calculate total amount
+    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     return (
         <div className="paypal-checkout">
@@ -112,7 +109,7 @@ function PayPalCheckout({ cartItems, onSuccess, onError, onClearCart }) {
                 <input type="hidden" name="rm" value="1" /> {/* Return method: GET */}
 
                 {/* Cart items */}
-                {cartItems && cartItems.map((item, index) => (
+                {items.map((item, index) => (
                     <React.Fragment key={item.pid}>
                         <input type="hidden" name={`item_name_${index + 1}`} value={item.name} />
                         <input type="hidden" name={`item_number_${index + 1}`} value={item.pid} />
@@ -129,7 +126,7 @@ function PayPalCheckout({ cartItems, onSuccess, onError, onClearCart }) {
                 <button 
                     type="submit" 
                     className="checkout-button"
-                    disabled={loading || !cartItems || cartItems.length === 0 || !csrfToken}
+                    disabled={loading || items.length === 0 || !csrfToken}
                 >
                     {loading ? 'Processing...' : `Pay with PayPal`}
                 </button>
