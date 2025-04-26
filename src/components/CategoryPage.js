@@ -13,8 +13,9 @@ function CategoryPage({ onProductClick, onAddToCart }) {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
+                // Default to category ID 1 if categoryId is undefined or null
                 const url = !categoryId || categoryId === 'all'
-                    ? `${API_BASE_URL}/products`
+                    ? `${API_BASE_URL}/categories/1/products`
                     : `${API_BASE_URL}/categories/${categoryId}/products`;
                 
                 const response = await fetch(url, {
