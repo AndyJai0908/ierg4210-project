@@ -265,13 +265,13 @@ function AppContent() {
                 <Link to="/member-portal" className="member-portal-button">My Orders</Link>
                 <Link to="/change-password" className="nav-link">Change Password</Link>
                 <button onClick={handleLogout} className="logout-button">Logout</button>
-              </>
-            ) : (
-              <>
+                </>
+              ) : (
+            <>
                 <Link to="/member-portal" className="member-portal-button">Check Orders</Link>
                 <Link to="/login" className="login-button">Login</Link>
-              </>
-            )}
+            </>
+          )}
           </div>
         </nav>
       </header>

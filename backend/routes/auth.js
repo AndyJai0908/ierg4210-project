@@ -171,14 +171,14 @@ router.post('/login', async (req, res) => {
 // Logout route
 router.post('/logout', (req, res) => {
     if (req.session) {
-        req.session.destroy((err) => {
-            if (err) {
+    req.session.destroy((err) => {
+        if (err) {
                 console.error('Logout error:', err);
-                return res.status(500).json({ error: 'Logout failed' });
-            }
+            return res.status(500).json({ error: 'Logout failed' });
+        }
             res.clearCookie('sessionId');
-            res.json({ success: true, message: 'Logged out successfully' });
-        });
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
     } else {
         res.json({ success: true, message: 'Already logged out' });
     }
@@ -211,9 +211,9 @@ router.post('/change-password', isAuthenticated, async (req, res) => {
                 console.error('Session destruction error:', err);
             }
             res.clearCookie('sessionId');
-            res.json({ 
-                success: true, 
-                message: 'Password changed successfully. Please log in again.' 
+        res.json({ 
+            success: true, 
+            message: 'Password changed successfully. Please log in again.' 
             });
         });
     } catch (error) {
