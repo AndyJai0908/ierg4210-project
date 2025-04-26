@@ -97,11 +97,22 @@
     cursor: not-allowed;
 }
 
-.cart-icon-container {
+.cart-container {
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 1000;
+}
+
+.cart-wrapper {
+    position: relative;
+}
+
+/* The hover behavior is applied to the wrapper, which contains both icon and dropdown */
+.cart-wrapper:hover .cart-dropdown {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .cart-icon {
@@ -154,22 +165,22 @@
     width: 350px;
     max-height: 500px;
     overflow-y: auto;
-    display: none;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
     z-index: 1001;
 }
 
-.cart-dropdown.open {
-    display: block;
-}
-
-/* Create a safe hover gap between icon and dropdown */
+/* Critical CSS to fill the gap between cart icon and dropdown */
 .cart-dropdown::after {
     content: '';
     position: absolute;
-    bottom: -10px;
-    width: 100%;
-    height: 10px;
+    bottom: -20px;
+    height: 20px;
     left: 0;
+    right: 0;
+    background: transparent;
 }
 
 .empty-cart-message {
