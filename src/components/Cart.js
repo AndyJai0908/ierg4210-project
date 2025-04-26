@@ -34,42 +34,45 @@ const Cart = ({ items, onUpdateQuantity, onRemoveItem }) => {
                         <p className="empty-cart-message">Your cart is empty</p>
                     ) : (
                         <>
-                            {items.map((item) => (
-                                <div key={item.pid} className="cart-item">
-                                    <img src={`${API_BASE_URL}/image/${item.image || 'placeholder.jpg'}`} alt={item.name} className="cart-item-image" />
-                                    <div className="cart-item-details">
-                                        <h3>{item.name}</h3>
-                                        <p className="item-price">HK${parseFloat(item.price).toFixed(2)}</p>
-                                        <div className="quantity-controls">
+                            <div className="cart-items">
+                                {items.map((item) => (
+                                    <div key={item.pid} className="cart-item">
+                                        <img src={`${API_BASE_URL}/image/${item.image || 'placeholder.jpg'}`} alt={item.name} className="cart-item-image" />
+                                        <div className="cart-item-details">
+                                            <h3>{item.name}</h3>
+                                            <p className="item-price">HK${parseFloat(item.price).toFixed(2)}</p>
+                                            <div className="quantity-controls">
+                                                <button 
+                                                    className="qty-btn minus"
+                                                    onClick={() => onUpdateQuantity(item.pid, Math.max(1, item.quantity - 1))}
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="quantity">{item.quantity}</span>
+                                                <button 
+                                                    className="qty-btn plus"
+                                                    onClick={() => onUpdateQuantity(item.pid, item.quantity + 1)}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
                                             <button 
-                                                className="qty-btn minus"
-                                                onClick={() => onUpdateQuantity(item.pid, Math.max(1, item.quantity - 1))}
+                                                onClick={() => onRemoveItem(item.pid)} 
+                                                className="remove-button"
                                             >
-                                                -
-                                            </button>
-                                            <span className="quantity">{item.quantity}</span>
-                                            <button 
-                                                className="qty-btn plus"
-                                                onClick={() => onUpdateQuantity(item.pid, item.quantity + 1)}
-                                            >
-                                                +
+                                                Remove
                                             </button>
                                         </div>
-                                        <button 
-                                            onClick={() => onRemoveItem(item.pid)} 
-                                            className="remove-button"
-                                        >
-                                            Remove
-                                        </button>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                             <div className="cart-total">
                                 <h3>Total: HK${totalPrice.toFixed(2)}</h3>
                                 <PayPalCheckout 
-                                    items={items}
+                                    cartItems={items}
                                     onSuccess={handleCheckoutSuccess}
                                     onError={handleCheckoutError}
+                                    onClearCart={() => items.forEach(item => onRemoveItem(item.pid))}
                                 />
                             </div>
                         </>
