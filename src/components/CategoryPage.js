@@ -28,8 +28,6 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                 
                 const data = await response.json();
                 console.log('Product data:', data);
-                
-                // Ensure data is an array
                 setProducts(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error('Error:', error);
