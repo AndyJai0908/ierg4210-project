@@ -101,10 +101,17 @@ function AppContent() {
         ]);
 
         const products = await productsRes.json();
-        const categories = await categoriesRes.json();
+        const categoriesData = await categoriesRes.json();
 
         setProducts(products);
-        setCategories(categories);
+        
+        // Transform the categories array into an object with catid as keys
+        const categoriesObj = {};
+        categoriesData.forEach(category => {
+          categoriesObj[category.catid] = category;
+        });
+        
+        setCategories(categoriesObj);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
