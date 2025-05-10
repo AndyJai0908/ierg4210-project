@@ -14,7 +14,7 @@ const MemberPortal = ({ onLogout }) => {
         const checkAuthAndFetchOrders = async () => {
             try {
                 // First check if user is logged in
-                const authResponse = await fetch('http://localhost:5000/api/auth/status', {
+                const authResponse = await fetch('https://s21.ierg4210.ie.cuhk.edu.hk/api/auth/status', {
                     credentials: 'include'
                 });
                 
@@ -25,13 +25,13 @@ const MemberPortal = ({ onLogout }) => {
                 // And only fetch orders if user is logged in
                 if (authData.isLoggedIn) {
                     // Get CSRF token
-                    const csrfResponse = await fetch('http://localhost:5000/api/csrf-token', {
+                    const csrfResponse = await fetch('https://s21.ierg4210.ie.cuhk.edu.hk/api/csrf-token', {
                         credentials: 'include'
                     });
                     const { csrfToken } = await csrfResponse.json();
 
                     // Fetch orders
-                    const response = await fetch('http://localhost:5000/api/auth/orders', {
+                    const response = await fetch('https://s21.ierg4210.ie.cuhk.edu.hk/api/auth/orders', {
                         credentials: 'include',
                         headers: {
                             'Accept': 'application/json',

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
 function ProductPage({ onAddToCart }) {
   const [product, setProduct] = useState(null);

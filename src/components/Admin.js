@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import './Admin.css';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
 function Admin() {
     const [categories, setCategories] = useState([]);

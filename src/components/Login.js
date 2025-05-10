@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
  
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
 function Login({ onLoginSuccess, setUser }) {
     const [email, setEmail] = useState('');

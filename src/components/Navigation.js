@@ -10,7 +10,7 @@ const Navigation = () => {
         // Check if user is logged in 
         const checkLoginStatus = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/auth/status', {
+                const response = await fetch('https://s21.ierg4210.ie.cuhk.edu.hk/api/auth/status', {
                     credentials: 'include'
                 });
                 if (response.ok) {
@@ -26,7 +26,7 @@ const Navigation = () => {
 
     const handleLogout = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/auth/logout', {
+            const response = await fetch('https://s21.ierg4210.ie.cuhk.edu.hk/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
             });
