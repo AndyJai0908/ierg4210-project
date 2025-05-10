@@ -14,7 +14,7 @@ import Cart from './components/Cart';
 import MemberPortal from './components/MemberPortal';
 import Register from './components/Register';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 
 // Payment result components
 const PaymentSuccess = () => {
@@ -28,7 +28,7 @@ const PaymentSuccess = () => {
       
       if (invoice) {
         try {
-          const response = await fetch(`http://localhost:5000/api/paypal/success?invoice=${invoice}`, {
+          const response = await fetch(`https://s21.ierg4210.ie.cuhk.edu.hk/api/paypal/success?invoice=${invoice}`, {
             credentials: 'include'
           });
           if (!response.ok) {
