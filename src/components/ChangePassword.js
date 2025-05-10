@@ -63,7 +63,7 @@ const ChangePassword = () => {
             <form onSubmit={handleSubmit} className="change-password-form">
                 <h2>Change Password</h2>
                 {error && <div className="error-message">{error}</div>}
-                {success && <div className="success-message">Password changed successfully! Redirecting to login...</div>}
+                {success && <div className="success-message">Password changed successfully, please login again.</div>}
                 <div className="form-group">
                     <label htmlFor="currentPassword">Current Password:</label>
                     <input

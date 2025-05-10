@@ -47,7 +47,7 @@ app.use(cors({
 // Session configuration
 app.use(session({
     name: 'sessionId',
-    secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true, // Create session for all visitors
     cookie: {
