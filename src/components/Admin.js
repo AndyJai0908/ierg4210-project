@@ -74,7 +74,7 @@ function Admin() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            setCategories(data);
+            setCategories(data.categories ? data.categories : data);
         } catch (error) {
             console.error('Error fetching categories:', error);
             setError('Failed to load categories');
@@ -90,7 +90,7 @@ function Admin() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            setProducts(data);
+            setProducts(data.products ? data.products : data);
         } catch (error) {
             console.error('Error fetching products:', error);
             setError('Failed to load products');
