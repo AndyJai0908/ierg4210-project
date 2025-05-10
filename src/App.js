@@ -28,7 +28,7 @@ const PaymentSuccess = () => {
       
       if (invoice) {
         try {
-          const response = await fetch(`https://s21.ierg4210.ie.cuhk.edu.hk/api/paypal/success?invoice=${invoice}`, {
+          const response = await fetch(`http://localhost:5000/api/paypal/success?invoice=${invoice}`, {
             credentials: 'include'
           });
           if (!response.ok) {
