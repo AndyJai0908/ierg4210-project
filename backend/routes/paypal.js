@@ -171,7 +171,7 @@ router.get('/success', async (req, res) => {
         console.error('Error updating order status:', error);
     }
     
-    res.redirect('http://localhost:3000/payment-success');
+    res.redirect('https://s21.ierg4210.ie.cuhk.edu.hk/payment-success');
 });
 
 // Cancel route
@@ -188,7 +188,7 @@ router.get('/cancel', async (req, res) => {
         console.error('Error updating order status:', error);
     }
     
-    res.redirect('http://localhost:3000/payment-cancelled');
+    res.redirect('https://s21.ierg4210.ie.cuhk.edu.hk/payment-cancelled');
 });
 
 module.exports = router; 

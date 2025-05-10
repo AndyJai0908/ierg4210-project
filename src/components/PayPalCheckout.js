@@ -65,8 +65,8 @@ function PayPalCheckout({ items, onSuccess, onError }) {
             document.getElementById('paypal-custom').value = orderData.digest;
 
             // Update return URLs with order ID
-            document.getElementById('paypal-return').value = `${window.location.origin}/payment-success?invoice=${orderData.orderId}`;
-            document.getElementById('paypal-cancel').value = `${window.location.origin}/payment-cancelled?invoice=${orderData.orderId}`;
+            document.getElementById('paypal-return').value = `https://s21.ierg4210.ie.cuhk.edu.hk/payment-success?invoice=${orderData.orderId}`;
+            document.getElementById('paypal-cancel').value = `https://s21.ierg4210.ie.cuhk.edu.hk/payment-cancelled?invoice=${orderData.orderId}`;
             
             // Submit the form with PayPal parameters
             document.getElementById('paypal-form').submit();
@@ -119,8 +119,8 @@ function PayPalCheckout({ items, onSuccess, onError }) {
                 ))}
 
                 {/* Return URLs */}
-                <input type="hidden" id="paypal-return" name="return" value={`${window.location.origin}/payment-success?invoice=PENDING`} />
-                <input type="hidden" id="paypal-cancel" name="cancel_return" value={`${window.location.origin}/payment-cancelled`} />
+                <input type="hidden" id="paypal-return" name="return" value={`https://s21.ierg4210.ie.cuhk.edu.hk/payment-success?invoice=PENDING`} />
+                <input type="hidden" id="paypal-cancel" name="cancel_return" value={`https://s21.ierg4210.ie.cuhk.edu.hk/payment-cancelled`} />
                 <input type="hidden" name="notify_url" value={`${API_BASE_URL}/paypal/ipn`} />
 
                 <button 
