@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './Navigation.css';  // We'll create this file next
+import './Navigation.css'; 
 
 const Navigation = () => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check if user is logged in when component mounts
+        // Check if user is logged in 
         const checkLoginStatus = async () => {
             try {
                 const response = await fetch('http://localhost:5000/api/auth/status', {
@@ -49,11 +49,16 @@ const Navigation = () => {
                 {user ? (
                     <div className="user-menu">
                         <span className="welcome-text">Welcome, {user.email}</span>
+                        <Link to="/member-portal" className="nav-link">My Account</Link>
                         <Link to="/change-password" className="nav-link">Change Password</Link>
                         <button onClick={handleLogout} className="logout-button">Logout</button>
                     </div>
                 ) : (
-                    <Link to="/login" className="login-button">Login</Link>
+                    <div className="auth-menu">
+                        <Link to="/member-portal" className="nav-link">Member Portal</Link>
+                        <Link to="/login" className="login-button">Login</Link>
+                        <Link to="/register" className="register-button">Register</Link>
+                    </div>
                 )}
             </div>
         </nav>

@@ -1,6 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 
 const dbPath = path.join(__dirname, 'database.sqlite');
 
@@ -123,23 +124,89 @@ const createUser = async (email, password, isAdmin = 0) => {
 };
 
 // Verify user
-const verifyUser = async (email, password) => {
+const verifyUser = (email, password) => {
     return new Promise((resolve, reject) => {
-        db.get(
-            'SELECT * FROM users WHERE email = ?',
-            [email],
-            async (err, user) => {
-                if (err) reject(err);
-                if (!user) resolve(null);
-                
-                const hashedPassword = await hashPassword(password, user.salt);
-                if (hashedPassword === user.password) {
-                    resolve(user);
-                } else {
-                    resolve(null);
-                }
+        console.log(`Attempting to verify user: ${email}`);
+        
+        db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+            if (err) {
+                console.error('Database error during user lookup:', err);
+                return reject(err);
             }
-        );
+            
+            if (!user) {
+                console.log('User not found:', email);
+                return resolve(null);
+            }
+            
+            try {
+                console.log(`User found: ${email}, checking password format`);
+                
+                let isMatch = false;
+                
+                // Check if password is in bcrypt format (starts with $2b$)
+                if (user.password.startsWith('$2b$')) {
+                    console.log('Using bcrypt comparison for:', email);
+                    // For bcrypt passwords (new format)
+                    isMatch = await bcrypt.compare(password, user.password);
+                } else {
+                    // For legacy passwords (old format)
+                    console.log('Using legacy comparison for:', email);
+                    
+                    // IMPORTANT: Add this for debugging - log the stored password format
+                    console.log('Stored password format:', {
+                        email: email,
+                        passwordStart: user.password.substring(0, 20) + '...',
+                        saltStart: user.salt.substring(0, 20) + '...'
+                    });
+                    
+                    // Try different possible legacy methods:
+                    
+                    // Method 1: Direct comparison (if passwords were stored in plain text)
+                    if (password === user.password) {
+                        console.log('Legacy method 1 (direct) matched');
+                        isMatch = true;
+                    }
+                    
+                    // Method 2: Using stored salt with SHA-256 (common legacy approach)
+                    if (!isMatch) {
+                        const hash = crypto.createHash('sha256')
+                            .update(password + user.salt)
+                            .digest('hex');
+                        
+                        if (hash === user.password) {
+                            console.log('Legacy method 2 (sha256+salt) matched');
+                            isMatch = true;
+                        }
+                    }
+                    
+                    // Method 3: Using MD5 with salt (older legacy approach)
+                    if (!isMatch) {
+                        const md5Hash = crypto.createHash('md5')
+                            .update(password + user.salt)
+                            .digest('hex');
+                        
+                        if (md5Hash === user.password) {
+                            console.log('Legacy method 3 (md5+salt) matched');
+                            isMatch = true;
+                        }
+                    }
+                    
+                    // Add more methods as needed
+                }
+                
+                if (isMatch) {
+                    console.log(`Password verification successful for ${email}`);
+                    return resolve(user);
+                } else {
+                    console.log(`Password verification failed for ${email}`);
+                    return resolve(null);
+                }
+            } catch (error) {
+                console.error('Error during password verification:', error);
+                return reject(error);
+            }
+        });
     });
 };
 

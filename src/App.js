@@ -12,8 +12,9 @@ import Login from './components/Login';
 import ChangePassword from './components/ChangePassword';
 import Cart from './components/Cart';
 import MemberPortal from './components/MemberPortal';
+import Register from './components/Register';
 
-const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // Payment result components
 const PaymentSuccess = () => {
@@ -242,9 +243,25 @@ function AppContent() {
 
   const handleLogout = async () => {
     try {
+      // Fetch CSRF token
+      const tokenResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
+        credentials: 'include'
+      });
+      
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to fetch CSRF token');
+      }
+      
+      const { csrfToken } = await tokenResponse.json();
+      
+      // Then use the token for logout
       const response = await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        }
       });
 
       if (response.ok) {
@@ -252,6 +269,8 @@ function AppContent() {
         setIsLoggedIn(false);
         setIsAdmin(false);
         navigate('/');
+      } else {
+        console.error('Logout failed:', await response.text());
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -268,14 +287,14 @@ function AppContent() {
             {user ? (
               <>
                 <span className="user-info">Welcome, {user.email}</span>
-                {user.isAdmin && <Link to="/admin" className="nav-link">Admin</Link>}
-                <Link to="/member-portal" className="member-portal-button">My Orders</Link>
+                {user.isAdmin && <Link to="/admin" className="nav-link">Admin Panel</Link>}
+                <Link to="/member-portal" className="member-portal-button">Member Portal</Link>
                 <Link to="/change-password" className="nav-link">Change Password</Link>
                 <button onClick={handleLogout} className="logout-button">Logout</button>
                 </>
               ) : (
             <>
-                <Link to="/member-portal" className="member-portal-button">Check Orders</Link>
+                <Link to="/member-portal" className="member-portal-button">Member Portal</Link>
                 <Link to="/login" className="login-button">Login</Link>
             </>
           )}
@@ -315,7 +334,7 @@ function AppContent() {
                 <Admin />
               </ProtectedRoute>
             } />
-            <Route path="/member-portal" element={<MemberPortal />} />
+            <Route path="/member-portal" element={<MemberPortal onLogout={handleLogout} />} />
             <Route path="/category/:categoryId" element={<CategoryPage onProductClick={handleProductClick} onAddToCart={handleAddToCart} />} />
             <Route path="/category/:categoryId/product/:productId" element={<ProductPage onAddToCart={handleAddToCart} />} />
             <Route path="/login" element={<Login setUser={setUser} />} />
@@ -326,6 +345,7 @@ function AppContent() {
             } />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancelled" element={<PaymentCancelled />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
       </div>

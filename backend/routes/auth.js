@@ -113,21 +113,27 @@ router.get('/status', (req, res) => {
     });
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, async (req, res) => {
     try {
         const { email, password } = req.body;
         
         console.log('Login attempt for:', email);
         
+        if (!email || !password) {
+            console.error('Missing email or password');
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+        
         const user = await verifyUser(email, password);
         
         if (!user) {
-            console.log('Login failed: Invalid credentials');
+            console.log('Login failed: Invalid credentials for', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         console.log('User verified successfully:', {
             userId: user.userid,
+            email: user.email,
             isAdmin: user.is_admin === 1
         });
 
@@ -219,6 +225,60 @@ router.post('/change-password', isAuthenticated, async (req, res) => {
     } catch (error) {
         console.error('Password change error:', error);
         res.status(500).json({ error: 'Failed to change password' });
+    }
+});
+
+// Registration route
+router.post('/register', validateRegistration, async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Check if email already exists
+        db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (user) {
+                return res.status(400).json({ error: 'Email already registered' });
+            }
+
+            // Create a new user
+            try {
+                // Generate salt for password
+                const salt = await bcrypt.genSalt(10);
+                
+                // Hash password with salt
+                const hashedPassword = await bcrypt.hash(password, salt);
+                
+                // Insert user with hashed password
+                const sql = 'INSERT INTO users (email, password, salt, is_admin) VALUES (?, ?, ?, 0)';
+                
+                db.run(sql, [email, hashedPassword, salt], function(err) {
+                    if (err) {
+                        console.error('User creation error:', err);
+                        return res.status(500).json({ error: 'Failed to create user' });
+                    }
+                    
+                    console.log('User registered successfully:', {
+                        userId: this.lastID,
+                        email
+                    });
+                    
+                    res.status(201).json({ 
+                        success: true, 
+                        message: 'Registration successful' 
+                    });
+                });
+            } catch (hashError) {
+                console.error('Password hashing error:', hashError);
+                res.status(500).json({ error: 'Password processing failed' });
+            }
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'An error occurred during registration' });
     }
 });
 

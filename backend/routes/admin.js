@@ -416,4 +416,43 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
     }
 });
 
+// Delete category
+router.delete('/categories/:catid', async (req, res) => {
+    try {
+        const catid = req.params.catid;
+        
+        // Check if category has products first
+        const checkSql = 'SELECT COUNT(*) as count FROM products WHERE catid = ?';
+        
+        db.get(checkSql, [catid], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            if (result.count > 0) {
+                return res.status(400).json({ 
+                    error: 'Cannot delete category with products. Move or delete the products first.' 
+                });
+            }
+            
+            // No products, safe to delete
+            const deleteSql = 'DELETE FROM categories WHERE catid = ?';
+            db.run(deleteSql, [catid], function(err) {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                if (this.changes === 0) {
+                    return res.status(404).json({ error: 'Category not found' });
+                }
+                
+                res.json({ message: 'Category deleted successfully' });
+            });
+        });
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router; 

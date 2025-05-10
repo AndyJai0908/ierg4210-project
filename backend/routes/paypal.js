@@ -9,8 +9,7 @@ router.post('/create-order', async (req, res) => {
     try {
         const { items } = req.body;
         
-        // log for debugging
-        console.log('Received items for PayPal order:', items);
+        console.log('Received items for PayPal order:', items); // Debug log
 
         // Validate items
         if (!items || !Array.isArray(items) || items.length === 0) {

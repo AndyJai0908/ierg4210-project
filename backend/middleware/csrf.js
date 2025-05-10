@@ -7,6 +7,12 @@ const csrfMiddleware = (req, res, next) => {
         return next();
     }
     
+    // Skip for registration, login, and logout paths
+    if (req.path === '/register' || req.path === '/login' || req.path === '/logout') {
+        console.log('Skipping CSRF check for auth path:', req.path);
+        return next();
+    }
+    
     // Generate CSRF token if not exists
     if (!req.session.csrfSecret) {
         console.log('Creating new CSRF secret for session:', req.sessionID);

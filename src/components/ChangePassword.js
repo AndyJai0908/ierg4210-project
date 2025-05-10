@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ChangePassword.css';
 
-const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const ChangePassword = () => {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -17,20 +17,19 @@ const ChangePassword = () => {
         setError('');
         setSuccess(false);
 
-        // Validate passwords match
+        // Validate passwords match first 
         if (newPassword !== confirmPassword) {
             setError('New passwords do not match');
             return;
         }
 
         try {
-            // Get CSRF token first
+            // Get CSRF token then
             const csrfResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
                 credentials: 'include'
             });
             const { csrfToken } = await csrfResponse.json();
 
-            // Submit password change request
             const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
                 method: 'POST',
                 credentials: 'include',
@@ -47,7 +46,7 @@ const ChangePassword = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to change password');
+                throw new Error(data.error);
             }
 
             setSuccess(true);
@@ -55,7 +54,7 @@ const ChangePassword = () => {
                 navigate('/login');
             }, 2000);
         } catch (err) {
-            setError(err.message || 'An error occurred while changing password');
+            setError(err.message);
         }
     };
 

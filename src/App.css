@@ -75,116 +75,6 @@
   font-weight: 500;
 }
 
-.shopping-cart-icon {
-  position: relative;
-  cursor: pointer;
-  font-size: 1.5rem;
-  padding: 0.5rem;
-}
-
-.shopping-list {
-  display: none;
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg);
-  padding: 1rem;
-  min-width: 300px;
-  z-index: 1000;
-}
-
-.shopping-cart-icon:hover .shopping-list {
-  display: block;
-}
-
-.shopping-list:hover {
-  display: block; /* keep menu visible */
-}
-
-.cart-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.cart-item h4 {
-  margin: 0;
-  font-size: 1rem;
-  flex: 1;
-}
-
-.quantity-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 1rem;
-}
-
-.quantity-controls button {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  transition: background-color 0.2s ease;
-}
-
-.quantity-controls button:hover {
-  background: var(--primary-hover);
-}
-
-.quantity-controls span {
-  min-width: 20px;
-  text-align: center;
-}
-
-.cart-item .price {
-  margin: 0;
-  font-weight: 500;
-  color: var(--primary-color);
-}
-
-.checkout-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  margin-top: 1rem;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.checkout-btn:hover {
-  background: var(--primary-hover);
-}
-
-.shopping-list h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
-.shopping-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
 .main-container {
   display: flex;
   width: 100%;
@@ -451,28 +341,6 @@ footer {
   color: #333;
 }
 
-.navbar {
-    display: flex;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    gap: 1rem;
-}
-
-.navbar a {
-    text-decoration: none;
-    color: #007bff;
-    padding: 0.5rem 1rem;
-}
-
-.navbar a:hover {
-    color: #0056b3;
-}
-
-.user-info {
-    margin-left: auto;
-}
-
-/* Add these styles after the existing nav-menu styles */
 .nav-auth {
   display: flex;
   align-items: center;
@@ -570,98 +438,6 @@ footer {
     background-color: var(--primary-hover);
 }
 
-/* Member Portal Styles */
-.member-portal {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: white;
-    border-radius: 8px;
-    box-shadow: var(--shadow-md);
-}
-
-.member-portal h2 {
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--primary-color);
-}
-
-.orders-list {
-    width: 100%;
-}
-
-.orders-list table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-}
-
-.orders-list th,
-.orders-list td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.orders-list th {
-    background-color: var(--background-light);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.order-status {
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-transform: capitalize;
-}
-
-.order-status.completed {
-    background-color: #dcfce7;
-    color: #166534;
-}
-
-.order-status.processing {
-    background-color: #dbeafe;
-    color: #1e40af;
-}
-
-.order-status.pending {
-    background-color: #fef9c3;
-    color: #854d0e;
-}
-
-.order-status.cancelled {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-
-.order-products {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.order-products li {
-    margin-bottom: 0.25rem;
-}
-
-.member-portal-button {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background-color 0.2s ease;
-    margin-left: 1rem;
-}
-
-.member-portal-button:hover {
-    background-color: var(--primary-hover);
-}
-
 /* Member Portal Button */
 .member-portal-button {
   padding: 8px 16px;
@@ -679,77 +455,96 @@ footer {
   background-color: #357abd;
 }
 
-/* Member Portal Page */
-.member-portal {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+/* Pagination Styles - Add to App.css */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem auto;
+  gap: 1rem;
 }
 
-.member-portal h2 {
-  color: #333;
-  margin-bottom: 20px;
-  font-size: 24px;
-}
-
-.orders-list {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
-}
-
-.orders-list table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.orders-list th,
-.orders-list td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.orders-list th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  color: #333;
-}
-
-.orders-list tr:hover {
-  background-color: #f8f9fa;
-}
-
-.order-products {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.order-products li {
-  margin-bottom: 4px;
-}
-
-.order-status {
-  display: inline-block;
-  padding: 4px 8px;
+.pagination-button {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
   border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.order-status.processing {
-  background-color: #fff3cd;
-  color: #856404;
+.pagination-button:hover {
+  background-color: var(--primary-hover);
 }
 
-.order-status.completed {
-  background-color: #d4edda;
-  color: #155724;
+.pagination-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
-.order-status.cancelled {
+.pagination-pages {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination-page {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-page:hover {
+  border-color: var(--primary-color);
+}
+
+.pagination-page.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+/* Infinite Scroll Styles - Add to App.css */
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
   background-color: #f8d7da;
   color: #721c24;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  text-align: center;
 }

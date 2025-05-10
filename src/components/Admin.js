@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './Admin.css';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 function Admin() {
     const [categories, setCategories] = useState([]);
@@ -22,9 +22,12 @@ function Admin() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
     const [orders, setOrders] = useState([]);
+    const [isDragging, setIsDragging] = useState(false);
+    const [imagePreview, setImagePreview] = useState(null);
+    const fileInputRef = useRef(null);
     const navigate = useNavigate();
 
-    // Memoize functions to prevent unnecessary re-renders
+    // Memoize functions to prevent unnecessary re-renders (optimization)
     const fetchCsrfToken = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/csrf-token`, {
@@ -143,7 +146,7 @@ function Admin() {
         // Initial load
         initializeAdmin();
 
-        // Refresh data every 30 seconds instead of continuous polling
+        // Refresh data every 30 seconds instead of continuous polling (optimization)
         timeoutId = setInterval(initializeAdmin, 30000);
 
         return () => {
@@ -154,7 +157,7 @@ function Admin() {
         };
     }, [checkAuth, fetchCsrfToken, fetchCategories, fetchProducts]);
 
-    // Add input validation rules
+    // Add input validation rules 
     const validateForm = (form) => {
         const errors = {};
         
@@ -259,6 +262,101 @@ function Admin() {
         }
     };
 
+    // Handle file validation
+    const validateFile = (file) => {
+        // Check if file is an image
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!validTypes.includes(file.type)) {
+            setError('Please upload a valid image file (JPEG, PNG, or GIF)');
+            return false;
+        }
+        
+        // Check file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setError('File size should be less than 10MB');
+            return false;
+        }
+        
+        return true;
+    };
+
+    // Handle file selection
+    const handleFileChange = (file) => {
+        if (!file) return;
+        
+        if (validateFile(file)) {
+            setError('');
+            setProductForm({ ...productForm, image: file });
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    // Handle drag events
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+    
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+    
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragging) {
+            setIsDragging(true);
+        }
+    };
+    
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            handleFileChange(file);
+            e.dataTransfer.clearData();
+        }
+    };
+    
+    const handleFileInputChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFileChange(e.target.files[0]);
+        }
+    };
+    
+    // Triggered when clicking on the drop zone
+    const handleDropzoneClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    // Modify the form reset logic to also clear the preview
+    const resetForm = () => {
+        setProductForm({
+            catid: '',
+            name: '',
+            price: '',
+            description: '',
+            image: null
+        });
+        setEditingProduct(null);
+        setImagePreview(null);
+    };
+
+    // Update existing handleEdit function
     const handleEdit = (product) => {
         setEditingProduct(product);
         setProductForm({
@@ -268,6 +366,8 @@ function Admin() {
             description: product.description,
             image: null 
         });
+        // Reset image preview when editing a product
+        setImagePreview(null);
     };
 
     const handleDelete = async (pid) => {
@@ -349,6 +449,45 @@ function Admin() {
         }
     };
 
+    const handleCategoryDelete = async (catid) => {
+        if (!window.confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            // Get fresh CSRF token
+            const tokenResponse = await fetch(`${API_BASE_URL}/csrf-token`, {
+                credentials: 'include'
+            });
+            if (!tokenResponse.ok) {
+                throw new Error('Failed to fetch CSRF token');
+            }
+            const { csrfToken } = await tokenResponse.json();
+            
+            const response = await fetch(`${API_BASE_URL}/admin/categories/${catid}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to delete category');
+            }
+
+            // Refresh categories after successful deletion
+            fetchCategories();
+            alert('Category deleted successfully');
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            setError(error.message);
+        }
+    };
+
     return (
         <div className="admin-container">
             {error && <div className="error-message">{error}</div>}
@@ -412,12 +551,49 @@ function Admin() {
 
                                 <div className="form-group">
                                     <label htmlFor="image">Product Image:</label>
-                                    <input
-                                        type="file"
-                                        id="image"
-                                        accept="image/jpeg,image/png,image/gif"
-                                        onChange={(e) => setProductForm({...productForm, image: e.target.files[0]})}
-                                    />
+                                    <div 
+                                        className={`drop-zone ${isDragging ? 'active' : ''}`}
+                                        onDragEnter={handleDragEnter}
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        onClick={handleDropzoneClick}
+                                    >
+                                        <input
+                                            type="file"
+                                            id="image"
+                                            ref={fileInputRef}
+                                            className="file-input"
+                                            accept="image/jpeg,image/png,image/gif"
+                                            onChange={handleFileInputChange}
+                                        />
+                                        
+                                        {imagePreview ? (
+                                            <div className="image-preview-container">
+                                                <img 
+                                                    src={imagePreview} 
+                                                    alt="Preview" 
+                                                    className="image-preview" 
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    className="remove-image" 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setImagePreview(null);
+                                                        setProductForm({...productForm, image: null});
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="drop-zone-prompt">
+                                                <p>Drag & Drop an image here or click to select</p>
+                                                <p className="drop-zone-hint">Supported formats: JPEG, PNG, GIF</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <button type="submit" disabled={loading}>
@@ -426,16 +602,7 @@ function Admin() {
                                 {editingProduct && (
                                     <button 
                                         type="button" 
-                                        onClick={() => {
-                                            setEditingProduct(null);
-                                            setProductForm({
-                                                catid: '',
-                                                name: '',
-                                                price: '',
-                                                description: '',
-                                                image: null
-                                            });
-                                        }}
+                                        onClick={resetForm}
                                         disabled={loading}
                                     >
                                         Cancel Edit
@@ -498,6 +665,36 @@ function Admin() {
                                 </div>
                                 <button type="submit" disabled={loading}>Add Category</button>
                             </form>
+                        </section>
+
+                        <section className="admin-panel-categories-list">
+                            <h2>Categories</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {categories.map(category => (
+                                        <tr key={category.catid}>
+                                            <td>{category.catid}</td>
+                                            <td>{category.name}</td>
+                                            <td>
+                                                <button 
+                                                    onClick={() => handleCategoryDelete(category.catid)}
+                                                    disabled={loading}
+                                                    className="delete-button"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </section>
 
                         <div className="orders-section">

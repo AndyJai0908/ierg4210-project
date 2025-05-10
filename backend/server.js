@@ -71,8 +71,37 @@ app.use((req, res, next) => {
 // Public routes (no CSRF protection needed)
 app.get('/api/products', async (req, res) => {
     try {
-        const rows = await getAllProducts();
-        res.json(rows || []);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12; // Products per page
+        const offset = (page - 1) * limit;
+        
+        // Get total count for pagination info
+        const countSql = 'SELECT COUNT(*) as total FROM products';
+        const total = await new Promise((resolve, reject) => {
+            db.get(countSql, [], (err, row) => {
+                if (err) reject(err);
+                else resolve(row.total);
+            });
+        });
+        
+        // Get paginated products
+        const sql = 'SELECT * FROM products LIMIT ? OFFSET ?';
+        const rows = await new Promise((resolve, reject) => {
+            db.all(sql, [limit, offset], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+        
+        res.json({
+            products: rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (err) {
         console.error('Database error:', err);
         res.status(500).json({ error: err.message });
@@ -91,12 +120,37 @@ app.get('/api/categories', async (req, res) => {
 
 app.get('/api/categories/:catid/products', async (req, res) => {
     try {
-        db.all('SELECT * FROM products WHERE catid = ?', [req.params.catid], (err, rows) => {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12; // Products per page
+        const offset = (page - 1) * limit;
+        const catid = req.params.catid;
+        
+        // Get total count for pagination info
+        const countSql = 'SELECT COUNT(*) as total FROM products WHERE catid = ?';
+        const total = await new Promise((resolve, reject) => {
+            db.get(countSql, [catid], (err, row) => {
+                if (err) reject(err);
+                else resolve(row.total);
+            });
+        });
+        
+        // Get paginated products
+        const sql = 'SELECT * FROM products WHERE catid = ? LIMIT ? OFFSET ?';
+        const rows = await new Promise((resolve, reject) => {
+            db.all(sql, [catid, limit, offset], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+        
+        res.json({
+            products: rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
             }
-            res.json(rows || []);
         });
     } catch (err) {
         console.error('Database error:', err);
@@ -163,8 +217,8 @@ app.get('/api/csrf-token', (req, res) => {
     }
 });
 
-// Auth routes
-app.use('/api/auth', authRoutes);
+// Auth routes with CSRF protection
+app.use('/api/auth', csrfProtection, authRoutes);
 
 // Routes that need CSRF protection
 app.use('/api/admin', csrfProtection, adminRoutes);
@@ -278,7 +332,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Apply rate limiting to routes (except login)
+// Apply rate limiting to routes (except login: will add later)
 app.use('/api/admin', apiLimiter);
 app.use('/api/products', productLimiter);
 app.use('/api/categories', productLimiter);

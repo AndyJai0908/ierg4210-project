@@ -12,18 +12,91 @@
   padding-bottom: 0.5rem;
 }
 
-.order-search {
+.member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.order-search form {
+.member-header h2 {
+  margin-bottom: 0;
+}
+
+.account-actions {
   display: flex;
   gap: 1rem;
-  align-items: center;
+}
+
+.member-info {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.user-email {
+  font-weight: 500;
+  color: #4a90e2;
+}
+
+.section-title {
+  margin: 2rem 0 1rem;
+  font-size: 20px;
+  color: #333;
+}
+
+.member-welcome {
+  text-align: center;
+  padding: 3rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 2rem;
+}
+
+.member-welcome p {
+  color: #666;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.action-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 120px;
+}
+
+.action-button:hover {
+  background-color: #357abd;
+}
+
+.action-button.register {
+  background-color: #28a745;
+}
+
+.action-button.register:hover {
+  background-color: #218838;
+}
+
+.action-button.logout {
+  background-color: #dc3545;
+}
+
+.action-button.logout:hover {
+  background-color: #c82333;
 }
 
 .order-input {
@@ -137,16 +210,11 @@
 
 .error {
   text-align: center;
-  padding: 2rem;
+  padding: 1rem;
   color: #721c24;
   background-color: #f8d7da;
   border-radius: 8px;
   margin: 1rem 0;
-}
-
-.error h2 {
-  color: #721c24;
-  border-bottom: none;
 }
 
 .no-orders {
