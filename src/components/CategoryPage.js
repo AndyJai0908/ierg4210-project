@@ -59,17 +59,21 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                 
                 const data = await response.json();
                 
-                // Handle both response formats (array or paginated object)
+                // Handle both response formats
                 let newProducts = [];
-                let paginationInfo = null;
                 
                 if (Array.isArray(data)) {
                     // Old format - direct array of products
-                    console.log('Received products array:', data.length);
                     newProducts = data;
-                    // Since we don't have pagination info, we'll assume there are more if we got a full page
                     setHasMore(data.length >= limit);
-                } 
+                } else if (data.products && Array.isArray(data.products)) {
+                    // New format - products nested in object with pagination
+                    newProducts = data.products;
+                    setHasMore(page < data.pagination.pages);
+                } else {
+                    console.error('Unexpected API response format:', data);
+                    throw new Error('Unexpected API response format');
+                }
                 
                 // Update products state
                 setProducts(prevProducts => {
