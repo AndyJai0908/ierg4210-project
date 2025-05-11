@@ -11,7 +11,7 @@ async function createAdminUser() {
         });
 
         // Create new admin user
-        await createUser('admin@example.com', 'admin123', 1);
+        await createUser('admin2@example.com', 'admin1234', 1);
         console.log('Admin user created successfully');
     } catch (error) {
         console.error('Error creating admin user:', error);
