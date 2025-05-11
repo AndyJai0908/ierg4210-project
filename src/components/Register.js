@@ -85,7 +85,7 @@ const Register = () => {
             <div className="register-form">
                 <h2>Register</h2>
                 {error && <div className="error-message">{error}</div>}
-                {success && <div className="success-message">Registration successful.</div>}
+                {success && <div className="success-message">Registration successful, please login.</div>}
                 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">

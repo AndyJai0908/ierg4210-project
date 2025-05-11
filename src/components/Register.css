@@ -38,7 +38,7 @@
 }
 
 .error-message {
-    color: #dc3545;
+    color: #e62a3d;
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
     border-radius: 4px;
@@ -48,8 +48,8 @@
 }
 
 .success-message {
-    color: green;
-    background-color: #e8f5e9;
+    color: rgb(7, 175, 7);
+    background-color: #b3c5b4;
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 1rem;
