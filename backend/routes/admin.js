@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const { createOrder, getProduct, updateProduct, addProduct } = require('../database/db');
 const paypal = require('../config/paypal');
 
-// Debug middleware for admin routes
+// Debug middleware for admin routes (for debugging, may delete later)
 router.use((req, res, next) => {
     console.log('Admin route accessed:', {
         path: req.path,
@@ -23,10 +23,10 @@ router.use((req, res, next) => {
     next();
 });
 
-// Protect all admin routes
+// Protect all admin routes (important)
 router.use(isAuthenticated, isAdmin);
 
-// Test route
+// Test route (for debugging, may delete later)
 router.get('/test', (req, res) => {
     res.json({ message: 'Admin route is working' });
 });
@@ -93,7 +93,7 @@ const sanitizeFilename = (filename) => {
         .replace(/^-|-$/g, ''); 
 };
 
-// Configure multer  temporary storage
+// Configure multer (for uploading images) temporary storage, seems not working, may delete later
 const storage = multer.diskStorage({
     destination: './public/images/temp/',
     filename: (req, file, cb) => {
@@ -151,7 +151,7 @@ const processImage = async (inputPath, outputPath, width, height) => {
     }
 };
 
-// Validation middleware
+// Validation middleware provided by express-validator
 const validateProduct = [
     body('name')
         .trim()
@@ -173,7 +173,7 @@ const validateProduct = [
 // Sanitize and validate product submission
 router.post('/products', upload.single('image'), validateProduct, async (req, res) => {
     try {
-        // Check validation results
+        // Check validation results, if errors, return 400 error
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
@@ -416,7 +416,7 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
     }
 });
 
-// Delete category
+// Delete category (added during phase 6)
 router.delete('/categories/:catid', async (req, res) => {
     try {
         const catid = req.params.catid;

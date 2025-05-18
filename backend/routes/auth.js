@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const { db } = require('../database/db');
 const { validateRegistration, validateLogin } = require('../middleware/validation');
 
-// Orders endpoint - handles both authenticated and guest users
+// Orders endpoint - handles both authenticated and guest users (not guest users anymore)
 router.get('/orders', async (req, res) => {
     try {
         // Get user_id from session or use 'guest' condition
@@ -28,7 +28,8 @@ router.get('/orders', async (req, res) => {
                     LIMIT 5`;
             params = [userId];
         } else {
-            // For guest users (where user_id is NULL)
+            // For guest users (where user_id is NULL) 
+            // this function is not used anymore since the member portal is updated and guest cannot see orders now, but kept for reference as it is reported as a bug
             query = `SELECT orders.*, GROUP_CONCAT(products.name) as products, 
                     GROUP_CONCAT(order_items.price) as prices,
                     GROUP_CONCAT(order_items.quantity) as quantities
@@ -228,7 +229,7 @@ router.post('/change-password', isAuthenticated, async (req, res) => {
     }
 });
 
-// Registration route
+// Registration route (phase 6)
 router.post('/register', validateRegistration, async (req, res) => {
     try {
         const { email, password } = req.body;

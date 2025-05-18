@@ -520,7 +520,7 @@ footer {
   font-size: 1.2rem;
 }
 
-/* Infinite Scroll Styles - Add to App.css */
+/* Infinite Scroll Styles (Phase 6) - Add to App.css */
 .loading-indicator {
   display: flex;
   justify-content: center;

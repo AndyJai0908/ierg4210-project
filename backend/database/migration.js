@@ -66,24 +66,9 @@ db.serialize(() => {
             console.log('Order_items table created successfully');
         }
     });
-
-    // Add thumbnail column if it doesn't exist
-    db.run(`
-        ALTER TABLE products 
-        ADD COLUMN thumbnail TEXT;
-    `, (err) => {
-        if (err) {
-            // Column might already exist, which is fine
-            if (!err.message.includes('duplicate column name')) {
-                console.error('Migration error:', err);
-            }
-        } else {
-            console.log('Successfully added thumbnail column');
-        }
-    });
 });
 
-// Close the database connection when done
+// Close the database connection when done and give time (1 second) for migrations to complete
 setTimeout(() => {
     db.close((err) => {
         if (err) {
@@ -92,4 +77,4 @@ setTimeout(() => {
             console.log('Database connection closed');
         }
     });
-}, 1000); // Give time for migrations to complete 
+}, 1000);

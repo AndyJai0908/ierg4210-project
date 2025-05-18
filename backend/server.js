@@ -22,7 +22,7 @@ const apiLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// More specific rate limiters
+// More specific one
 const productLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 30, // limit each IP to 30 requests per minute for product-related endpoints
@@ -47,12 +47,12 @@ app.use(cors({
 // Session configuration
 app.use(session({
     name: 'sessionId',
-    secret: process.env.SESSION_SECRET || 'your-strong-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true, // Create session for all visitors
     cookie: {
         httpOnly: true,
-        secure: false, // Set to false for development
+        secure: true, 
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
@@ -224,7 +224,7 @@ app.use('/api/auth', csrfProtection, authRoutes);
 app.use('/api/admin', csrfProtection, adminRoutes);
 app.use('/api/paypal', csrfProtection, paypalRoutes);
 
-// Static files - Make these more explicit
+// Static files, make these more explicit
 app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -276,7 +276,7 @@ app.get('/api/debug/products', async (req, res) => {
     }
 });
 
-// Add this route to see what's in the database
+//  This route is to see what is in the database, it is used for debugging
 app.get('/api/debug/products-with-images', async (req, res) => {
     try {
         db.all('SELECT pid, name, image, thumbnail FROM products', [], (err, rows) => {

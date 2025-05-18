@@ -73,7 +73,7 @@ const updateProduct = (pid, product) => {
             values.push(product.thumbnail);
         }
         
-        // Add the WHERE clause parameter
+        // Add the WHERE clause parameter (pid)
         values.push(pid);
         
         const query = `UPDATE products SET ${updates.join(', ')} WHERE pid = ?`;
@@ -85,18 +85,7 @@ const updateProduct = (pid, product) => {
     });
 };
 
-// Add this to your existing db.js initialization
-db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-        userid INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        salt TEXT NOT NULL,
-        is_admin INTEGER DEFAULT 0
-    )
-`);
-
-// Hash password with salt
+// Hash password with salt (outdated, sha512 was using at first, now should be bcrypt)
 const hashPassword = (password, salt) => {
     return new Promise((resolve, reject) => {
         crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
@@ -106,7 +95,7 @@ const hashPassword = (password, salt) => {
     });
 };
 
-// Create user
+// Create user (outdated, should be using register route now)
 const createUser = async (email, password, isAdmin = 0) => {
     const salt = crypto.randomBytes(16).toString('hex');
     const hashedPassword = await hashPassword(password, salt);
@@ -153,29 +142,29 @@ const verifyUser = (email, password) => {
                     // For legacy passwords (old format)
                     console.log('Using legacy comparison for:', email);
                     
-                    // IMPORTANT: Add this for debugging - log the stored password format
+                    // For debugging, to log the stored password format
                     console.log('Stored password format:', {
                         email: email,
                         passwordStart: user.password.substring(0, 20) + '...',
                         saltStart: user.salt.substring(0, 20) + '...'
                     });
                     
-                    // Try different possible legacy methods:
+                    // Different possible legacy methods:
                     
                     // Method 1: Direct comparison (if passwords were stored in plain text)
                     if (password === user.password) {
-                        console.log('Legacy method 1 (direct) matched');
+                        console.log('Legacy method 1 (direct) matched'); // Debug log
                         isMatch = true;
                     }
                     
-                    // Method 2: Using stored salt with SHA-256 (common legacy approach)
+                    // Method 2: Using stored salt with SHA-256 (common legacy approach), it is implemented  to verify the very first initialized account
                     if (!isMatch) {
                         const hash = crypto.createHash('sha256')
                             .update(password + user.salt)
                             .digest('hex');
                         
                         if (hash === user.password) {
-                            console.log('Legacy method 2 (sha256+salt) matched');
+                            console.log('Legacy method 2 (sha256+salt) matched'); // Debug log
                             isMatch = true;
                         }
                     }
@@ -187,12 +176,10 @@ const verifyUser = (email, password) => {
                             .digest('hex');
                         
                         if (md5Hash === user.password) {
-                            console.log('Legacy method 3 (md5+salt) matched');
+                            console.log('Legacy method 3 (md5+salt) matched'); // Debug log
                             isMatch = true;
                         }
                     }
-                    
-                    // Add more methods as needed
                 }
                 
                 if (isMatch) {
@@ -210,7 +197,6 @@ const verifyUser = (email, password) => {
     });
 };
 
-// Add this function with your other database methods
 const getAllProducts = () => {
     return new Promise((resolve, reject) => {
         db.all('SELECT * FROM products', [], (err, rows) => {
@@ -244,16 +230,20 @@ const generateSecureToken = (length = 32) => {
 
 // Update password with new salt
 const updatePassword = async (userId, newPassword) => {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hashedPassword = await hashPassword(newPassword, salt);
+    // Generate a new salt
+    const salt = await bcrypt.genSalt(10);
     
+    // Hash the new password with the salt
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update both password and salt in the database
     return new Promise((resolve, reject) => {
         db.run(
             'UPDATE users SET password = ?, salt = ? WHERE userid = ?',
             [hashedPassword, salt, userId],
-            (err) => {
+            function(err) {
                 if (err) reject(err);
-                else resolve();
+                else resolve(this.changes);
             }
         );
     });

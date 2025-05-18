@@ -1,7 +1,7 @@
 const validateRegistration = (req, res, next) => {
     const { email, password } = req.body;
 
-    // Email validation
+    // Email validation using regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
@@ -18,11 +18,11 @@ const validateRegistration = (req, res, next) => {
 const validateLogin = (req, res, next) => {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
+    if (!email || !password) { 
+        return res.status(400).json({ error: 'Email and password are required' }); 
     }
 
-    // Basic email format validation
+    // Basic email format validation using regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         return res.status(400).json({ error: 'Invalid email format' });

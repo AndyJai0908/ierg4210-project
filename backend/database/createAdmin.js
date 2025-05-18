@@ -2,12 +2,10 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcrypt');
 
-// Connect to the database
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'));
 
 async function createAdminUser() {
     try {
-        // Admin account details - change these as needed
         const email = "newadmin@example.com";
         const password = "admin123";
         const isAdmin = 1; // 1 = admin, 0 = regular user
@@ -20,7 +18,7 @@ async function createAdminUser() {
         console.log('Email:', email);
         console.log('Is Admin:', isAdmin);
 
-        // Check if user already exists
+        // Check if user already exists 
         db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
             if (err) {
                 console.error('Error checking for existing user:', err);

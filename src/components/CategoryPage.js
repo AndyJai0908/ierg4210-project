@@ -1,4 +1,3 @@
-// finished checking and debugging
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -10,12 +9,12 @@ function CategoryPage({ onProductClick, onAddToCart }) {
     const [error, setError] = useState(null);
     const { categoryId } = useParams();
     
-    // Pagination state
+    // Pagination state (phase 6)
     const [page, setPage] = useState(1);
     const [limit] = useState(12);
     const [hasMore, setHasMore] = useState(true);
     
-    // Infinite scroll setup
+    // Infinite scroll setup (phase 6)
     const observer = useRef();
     const lastProductElementRef = useCallback(node => {
         if (loading) return;
@@ -30,7 +29,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
-    // Reset when category changes
+    // Reset when category changes (phase 6)
     useEffect(() => {
         setProducts([]);
         setPage(1);
@@ -47,7 +46,7 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                     ? `${API_BASE_URL}/products?page=${page}&limit=${limit}`
                     : `${API_BASE_URL}/categories/${categoryId}/products?page=${page}&limit=${limit}`;
                 
-                console.log(`Fetching from: ${url}`);
+                console.log(`Fetching from: ${url}`); // for debugging
                 
                 const response = await fetch(url, {
                     credentials: 'include'
@@ -59,15 +58,15 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                 
                 const data = await response.json();
                 
-                // Handle both response formats
+                // Handle both response formats, since old format not working sometimes (phase 6)
                 let newProducts = [];
                 
                 if (Array.isArray(data)) {
-                    // Old format - direct array of products
+                    // Old format - direct array of products (phase 6)
                     newProducts = data;
                     setHasMore(data.length >= limit);
                 } else if (data.products && Array.isArray(data.products)) {
-                    // New format - products nested in object with pagination
+                    // New format - products nested in object with pagination (phase 6)
                     newProducts = data.products;
                     setHasMore(page < data.pagination.pages);
                 } else {
@@ -75,13 +74,13 @@ function CategoryPage({ onProductClick, onAddToCart }) {
                     throw new Error('Unexpected API response format');
                 }
                 
-                // Update products state
+                // Update products state (phase 6)
                 setProducts(prevProducts => {
                     if (page === 1) {
-                        // First page - replace products
+                        // First page - replace products (phase 6)
                         return [...newProducts];
                     } else {
-                        // Additional pages - append unique products
+                        // Additional pages - append unique products (phase 6)
                         const uniqueProducts = [...prevProducts];
                         
                         newProducts.forEach(newProduct => {
@@ -112,10 +111,10 @@ function CategoryPage({ onProductClick, onAddToCart }) {
         <section className="category-page">
             <div className="product-grid">
                 {products.map((product, index) => {
-                    // Add ref to last element for infinite scroll
+                    // Add ref to last element for infinite scroll (phase 6)
                     const isLastElement = products.length === index + 1;
                     
-                    return (
+                    return ( 
                         <article 
                             key={product.pid} 
                             className="product-card"

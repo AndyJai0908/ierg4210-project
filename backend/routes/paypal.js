@@ -18,7 +18,7 @@ router.post('/create-order', async (req, res) => {
 
         // Validate quantities and fetch prices
         const validatedItems = await Promise.all(items.map(async (item) => {
-            // For compatibility: Check if we're using item_number (from form) or pid (from API)
+            // For compatibility, check if it is using item_number (from form) or pid (from API)
             const productId = item.item_number || item.pid;
             
             if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
@@ -119,7 +119,7 @@ router.post('/ipn', async (req, res) => {
             return res.status(400).send('Invalid receiver');
         }
 
-        // Map PayPal payment status to our status
+        // Map PayPal payment status to our status (seems not working)
         let orderStatus;
         switch (payment_status?.toLowerCase()) {
             case 'completed':
@@ -164,7 +164,7 @@ router.get('/success', async (req, res) => {
     try {
         const { invoice } = req.query;
         if (invoice) {
-            // Update order status to processing until IPN confirms it
+            // Update order status to processing until the IPN confirms it
             await updateOrderStatus(invoice, 'processing');
         }
     } catch (error) {

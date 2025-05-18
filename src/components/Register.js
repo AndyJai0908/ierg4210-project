@@ -7,6 +7,7 @@ const API_BASE_URL = 'https://s21.ierg4210.ie.cuhk.edu.hk/api';
 const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
