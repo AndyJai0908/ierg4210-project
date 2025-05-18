@@ -129,7 +129,7 @@ router.post('/login', validateLogin, async (req, res) => {
         
         if (!user) {
             console.log('Login failed: Invalid credentials for', email);
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Wrong email or password' });
         }
 
         console.log('User verified successfully:', {
