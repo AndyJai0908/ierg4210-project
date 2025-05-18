@@ -30,7 +30,7 @@
 4. Go to login/admin page:
 type /login on the back on the URL to enter login page 
 type /admin on the back on the URL to enter admin page 
-Admin account: Email: admin@example.com; password: AdminPassword123!
+Admin account: Email: newadmin@example.com; password: admin123
 Normal user: Email:  user@example.com; password: UserPassword123!
 
 ## Project Structure
